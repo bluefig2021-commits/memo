@@ -79,7 +79,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/fireba
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
-// ▼ Firebase 콘솔 설정값 합침 완료
+// ▼ Firebase 콘솔 설정값
 const firebaseConfig = {
   apiKey: "AIzaSyAagWKtXuvQOhV-__Mxmd5ys8vs0xDDCUs",
   authDomain: "water-log132.firebaseapp.com",
@@ -211,7 +211,7 @@ $('#exportBtn').onclick = () => {
   const d = new Date(); a.download = `memo-backup-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.json`; a.click();
 };
 
-// ── AI 태그 추천 (선택) ──
+// ── AI 태그 추천 (gemini-2.5-flash 모델 적용) ──
 $('#aiBtn').onclick = async () => {
   const text = $('#text').value.trim();
   if (!text) return setMsg('내용을 먼저 입력하세요', 1);
@@ -219,7 +219,7 @@ $('#aiBtn').onclick = async () => {
   if (!key) { key = (prompt('Gemini API 키를 입력하세요 (이 브라우저에만 저장돼요)') || '').trim(); if (!key) return; try { localStorage.setItem('gkey', key); } catch {} }
   setMsg('태그 추천 중…');
   try {
-    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent', {
+    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
       body: JSON.stringify({
