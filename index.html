@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>메모장</title>
+<style>
+:root{--bg:#fff;--fg:#111;--mut:#888;--line:#ddd;--soft:#f5f5f5}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;padding:max(20px,env(safe-area-inset-top)) 18px max(40px,env(safe-area-inset-bottom))}
+main{max-width:640px;margin:0 auto}
+header{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--fg);padding-bottom:10px;margin-bottom:22px}
+h1{font-size:1.25rem;margin:0;font-weight:800;letter-spacing:-.02em}
+button,input,select,textarea{font:inherit;color:inherit;border-radius:0}
+.link{background:none;border:0;color:var(--mut);padding:4px 0 4px 14px;cursor:pointer}
+textarea,input,select{width:100%;border:1px solid var(--line);background:var(--soft);padding:12px;outline:none}
+textarea:focus,input:focus,select:focus{border-color:var(--fg);background:#fff}
+textarea{min-height:150px;resize:vertical}
+.row{display:flex;gap:8px;margin-top:8px}
+.btn{background:var(--fg);color:#fff;border:0;padding:13px 16px;font-weight:700;cursor:pointer;flex:1}
+.btn.ghost{background:#fff;color:var(--fg);border:1px solid var(--fg);flex:0 0 auto}
+.btn:disabled{opacity:.4}
+#msg{min-height:1.4em;font-size:.85rem;color:var(--mut);margin:8px 0 0}
+#msg.err{color:#c00}
+.filters{margin:26px 0 8px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.filters input{grid-column:1/3}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 6px}
+.chip{border:1px solid var(--line);background:#fff;padding:4px 10px;font-size:.85rem;cursor:pointer}
+.chip.on{background:var(--fg);color:#fff;border-color:var(--fg)}
+.note{border-top:1px solid var(--line);padding:16px 0}
+.date{font-size:.8rem;color:var(--mut)}
+.body{white-space:pre-wrap;word-break:break-word;margin:6px 0 8px}
+.nt{font-size:.85rem;color:#555}
+.acts{margin-top:4px}
+.acts .link{padding:4px 14px 4px 0;font-size:.85rem}
+.count{font-size:.8rem;color:var(--mut);margin:14px 0 0}
+#login{text-align:center;padding:60px 0}
+#login p{color:var(--mut);font-size:.9rem}
+#app,#login{display:none}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>메모장</h1>
+  <span id="who" style="display:none"><button class="link" id="exportBtn">백업</button><button class="link" id="outBtn">로그아웃</button></span>
+</header>
+
+<section id="login">
+  <button class="btn" id="inBtn" style="max-width:280px">Google로 로그인</button>
+  <p id="loginMsg"></p>
+</section>
+
+<div id="app">
+  <section>
+    <textarea id="text" placeholder="지금 생각을 적어두세요"></textarea>
+    <input id="tagIn" placeholder="태그 (띄어쓰기로 구분, 예: 영감 헛소리)" style="margin-top:8px">
+    <div class="row">
+      <button class="btn ghost" id="aiBtn">AI 태그 추천</button>
+      <button class="btn ghost" id="cancelBtn" style="display:none">수정 취소</button>
+      <button class="btn" id="saveBtn">저장</button>
+    </div>
+    <p id="msg"></p>
+  </section>
+
+  <section class="filters">
+    <input id="q" type="search" placeholder="검색 (본문·태그)">
+    <select id="year"></select>
+    <select id="month"></select>
+  </section>
+  <div class="tags" id="tags"></div>
+  <div class="count" id="count"></div>
+  <div id="list"></div>
+</div>
+</main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+// ▼ Firebase 콘솔 설정값 합침 완료
+const firebaseConfig = {
+  apiKey: "AIzaSyAagWKtXuvQOhV-__Mxmd5ys8vs0xDDCUs",
+  authDomain: "water-log132.firebaseapp.com",
+  projectId: "water-log132",
+  storageBucket: "water-log132.firebasestorage.app",
+  messagingSenderId: "569667354916",
+  appId: "1:569667354916:web:6cc37173ed1c9c2cf7f3b1",
+  measurementId: "G-2L6JGTPD41"
+};
+// ▲
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2, '0');
+const setMsg = (t, err) => { const m = $('#msg'); m.textContent = t; m.className = err ? 'err' : ''; };
+
+if (firebaseConfig.projectId === "YOUR_PROJECT_ID") {
+  $('#login').style.display = 'block';
+  $('#inBtn').style.display = 'none';
+  $('#loginMsg').textContent = '파일 안의 firebaseConfig를 Firebase 콘솔 값으로 바꿔주세요.';
+  throw new Error('firebaseConfig not set');
+}
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+let notesCol = null, unsub = null;
+let notes = [], editId = null, f = { y: '', m: '', t: '', q: '' };
+
+// ── 로그인 ──
+$('#inBtn').onclick = async () => {
+  const p = new GoogleAuthProvider();
+  try { await signInWithPopup(auth, p); }
+  catch (e) {
+    if (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment') return signInWithRedirect(auth, p);
+    $('#loginMsg').textContent = e.code === 'auth/unauthorized-domain'
+      ? '이 주소가 Firebase의 승인된 도메인에 없어요. Authentication → 설정 → 승인된 도메인에 추가하세요.'
+      : '로그인 실패: ' + (e.code || e.message);
+  }
+};
+$('#outBtn').onclick = () => signOut(auth);
+
+onAuthStateChanged(auth, user => {
+  if (unsub) { unsub(); unsub = null; }
+  notes = [];
+  if (!user) {
+    $('#login').style.display = 'block'; $('#app').style.display = 'none'; $('#who').style.display = 'none';
+    return;
+  }
+  $('#login').style.display = 'none'; $('#app').style.display = 'block'; $('#who').style.display = 'inline';
+  notesCol = collection(db, 'users', user.uid, 'notes');
+  unsub = onSnapshot(query(notesCol, orderBy('createdAt', 'desc')),
+    snap => { notes = snap.docs.map(d => ({ id: d.id, ...d.data() })); render(); },
+    err => setMsg('불러오기 실패: Firestore 규칙을 확인하세요 (' + err.code + ')', 1));
+});
+
+// ── 목록 ──
+const cleanTags = s => [...new Set(s.split(/[\s,#]+/).map(t => t.trim()).filter(Boolean))].slice(0, 8);
+const parts = n => { const d = new Date(n.createdAt); return { y: String(d.getFullYear()), m: pad(d.getMonth() + 1), label: `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}` }; };
+
+function render() {
+  const years = [...new Set(notes.map(n => parts(n).y))];
+  $('#year').innerHTML = '<option value="">전체 연도</option>' + years.map(y => `<option value="${y}" ${f.y === y ? 'selected' : ''}>${y}년</option>`).join('');
+  $('#month').innerHTML = '<option value="">전체 월</option>' + Array.from({ length: 12 }, (_, i) => pad(i + 1)).map(m => `<option value="${m}" ${f.m === m ? 'selected' : ''}>${+m}월</option>`).join('');
+
+  const scoped = notes.filter(n => { const p = parts(n); return (!f.y || p.y === f.y) && (!f.m || p.m === f.m); });
+  const counts = {};
+  scoped.forEach(n => (n.tags || []).forEach(t => counts[t] = (counts[t] || 0) + 1));
+  $('#tags').innerHTML = Object.entries(counts).sort((a, b) => b[1] - a[1])
+    .map(([t, c]) => `<button class="chip ${f.t === t ? 'on' : ''}" data-t="${esc(t)}">#${esc(t)} ${c}</button>`).join('');
+
+  const q = f.q.toLowerCase();
+  const shown = scoped.filter(n => (!f.t || (n.tags || []).includes(f.t)) &&
+    (!q || n.content.toLowerCase().includes(q) || (n.tags || []).some(t => t.toLowerCase().includes(q))));
+  $('#count').textContent = notes.length ? `${shown.length}개` : '';
+  $('#list').innerHTML = shown.length ? shown.map(n => `
+    <article class="note">
+      <div class="date">${parts(n).label}</div>
+      <div class="body">${esc(n.content)}</div>
+      <div class="nt">${(n.tags || []).map(t => '#' + esc(t)).join(' ')}</div>
+      <div class="acts"><button class="link" data-edit="${n.id}">수정</button><button class="link" data-del="${n.id}">삭제</button></div>
+    </article>`).join('') : `<p class="date">${notes.length ? '조건에 맞는 글이 없어요' : '아직 글이 없어요. 위에 첫 글을 적어보세요'}</p>`;
+}
+
+// ── 저장 / 수정 / 삭제 ──
+async function save() {
+  const content = $('#text').value.trim();
+  if (!content) return setMsg('내용을 입력하세요', 1);
+  const btn = $('#saveBtn'); btn.disabled = true; setMsg('저장 중…');
+  const tags = cleanTags($('#tagIn').value);
+  try {
+    if (editId) await updateDoc(doc(notesCol, editId), { content, tags, updatedAt: Date.now() });
+    else await addDoc(notesCol, { content, tags, createdAt: Date.now() });
+    resetForm(); localStorage.removeItem('draft'); setMsg('저장했어요');
+  } catch (e) { setMsg('저장 실패: ' + (e.code || e.message), 1); }   // 글은 입력창에 남음
+  btn.disabled = false;
+}
+function resetForm() { editId = null; $('#text').value = ''; $('#tagIn').value = ''; $('#cancelBtn').style.display = 'none'; $('#saveBtn').textContent = '저장'; }
+
+$('#saveBtn').onclick = save;
+$('#cancelBtn').onclick = () => { resetForm(); setMsg(''); };
+$('#list').onclick = async e => {
+  const ed = e.target.dataset.edit, del = e.target.dataset.del;
+  if (ed) {
+    const n = notes.find(x => x.id === ed); if (!n) return;
+    editId = ed; $('#text').value = n.content; $('#tagIn').value = (n.tags || []).join(' ');
+    $('#cancelBtn').style.display = ''; $('#saveBtn').textContent = '수정 저장';
+    window.scrollTo({ top: 0 }); $('#text').focus();
+  }
+  if (del && confirm('이 글을 삭제할까요? 되돌릴 수 없어요.')) {
+    try { await deleteDoc(doc(notesCol, del)); } catch (er) { setMsg('삭제 실패: ' + (er.code || er.message), 1); }
+  }
+};
+
+// ── 필터 ──
+$('#year').onchange = e => { f.y = e.target.value; f.t = ''; render(); };
+$('#month').onchange = e => { f.m = e.target.value; f.t = ''; render(); };
+$('#q').oninput = e => { f.q = e.target.value; render(); };
+$('#tags').onclick = e => { const b = e.target.closest('.chip'); if (!b) return; f.t = f.t === b.dataset.t ? '' : b.dataset.t; render(); };
+
+// ── 임시 저장 ──
+try { $('#text').value = localStorage.getItem('draft') || ''; } catch {}
+$('#text').oninput = e => { if (!editId) try { localStorage.setItem('draft', e.target.value); } catch {} };
+
+// ── 백업(JSON 다운로드) ──
+$('#exportBtn').onclick = () => {
+  const blob = new Blob([JSON.stringify(notes, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  const d = new Date(); a.download = `memo-backup-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.json`; a.click();
+};
+
+// ── AI 태그 추천 (선택) ──
+$('#aiBtn').onclick = async () => {
+  const text = $('#text').value.trim();
+  if (!text) return setMsg('내용을 먼저 입력하세요', 1);
+  let key = ''; try { key = localStorage.getItem('gkey') || ''; } catch {}
+  if (!key) { key = (prompt('Gemini API 키를 입력하세요 (이 브라우저에만 저장돼요)') || '').trim(); if (!key) return; try { localStorage.setItem('gkey', key); } catch {} }
+  setMsg('태그 추천 중…');
+  try {
+    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: '다음 글의 주제·대상·감정을 나타내는 짧은 한국어 태그를 3~5개 뽑아 JSON 문자열 배열로만 답해. 평가나 훈계는 하지 마.\n\n' + text }] }],
+        generationConfig: { responseMimeType: 'application/json' }
+      })
+    });
+    if (!r.ok) { if (r.status === 400 || r.status === 403) try { localStorage.removeItem('gkey'); } catch {} throw new Error('AI 요청 실패 (' + r.status + ')'); }
+    const arr = JSON.parse((await r.json()).candidates[0].content.parts[0].text);
+    $('#tagIn').value = cleanTags(arr.join(' ')).join(' ');
+    setMsg('추천 태그를 넣었어요. 고쳐서 저장하세요');
+  } catch (e) { setMsg(e.message || 'AI 태그를 못 가져왔어요', 1); }
+};
+</script>
+</body>
+</html>
