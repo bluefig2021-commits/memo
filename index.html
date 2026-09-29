@@ -5,180 +5,347 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MEMO</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 30px; color: #333; max-width: 800px; margin: 0 auto; background: #fff; }
-    
-    #loginView { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 80vh; gap: 20px; }
-    .title-logo { font-size: 12px; letter-spacing: 4px; color: #aaa; font-weight: bold; }
-    
-    #mainView { display: none; }
-    
-    .header { display: flex; align-items: center; gap: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
-    .btn { padding: 5px 15px; border: 1px solid #ccc; border-radius: 15px; background: #fff; cursor: pointer; font-size: 12px; letter-spacing: 1px; color: #888; }
-    .btn-black { background: #000; color: #fff; border: none; padding: 10px 30px; border-radius: 20px; font-weight: bold; font-size: 14px; letter-spacing: 1px; cursor: pointer; }
-    
-    .category-wrapper { display: flex; align-items: center; gap: 10px; }
-    .category-label { font-size: 12px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
-    
-    /* 네이비색 타원형(알약 뱃지) 카테고리 태그 */
-    .category-tag { 
-      border: 1px solid #0f172a; 
-      background: #0f172a; 
-      color: #ffffff; 
-      border-radius: 20px; 
-      outline: none; 
-      font-size: 12px; 
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background-color: #fcfcfc;
+      color: #111;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    /* 공통 카드 스타일 (요구한 얇은 테두리 + 둥근 모서리) */
+    .card {
+      border: 1px solid #333333;
+      border-radius: 12px;
+      padding: 20px;
+      background-color: #ffffff;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    }
+
+    /* 카테고리 설정 바 */
+    .category-bar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+    }
+
+    select, input[type="text"], textarea {
+      border: 1px solid #d1d1d1;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    select:focus, input[type="text"]:focus, textarea:focus {
+      border-color: #111111;
+    }
+
+    .input-category {
+      flex: 1;
+      min-width: 150px;
+    }
+
+    /* 에디터 영역 */
+    textarea {
+      width: 100%;
+      height: 150px;
+      resize: vertical;
+      margin-bottom: 15px;
+      line-height: 1.6;
+    }
+
+    .btn-group {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    button {
+      background-color: #111111;
+      color: #ffffff;
+      border: none;
+      border-radius: 20px;
+      padding: 10px 24px;
+      font-size: 14px;
       font-weight: 600;
-      padding: 6px 16px; 
-      width: 100px; 
-      text-align: center; 
-      letter-spacing: 0.5px;
-      transition: all 0.2s ease;
       cursor: pointer;
+      transition: opacity 0.2s;
     }
-    .category-tag:focus {
-      background: #ffffff;
-      color: #0f172a;
-      border-color: #0f172a;
-      cursor: text;
+
+    button:hover {
+      opacity: 0.85;
     }
-    
-    .toolbar { display: flex; gap: 15px; font-size: 14px; color: #555; padding-bottom: 10px; margin-bottom: 20px; font-weight: bold; }
-    .editor-container { min-height: 400px; outline: none; font-size: 16px; line-height: 1.6; padding-bottom: 20px; }
-    .footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 20px; }
-    #statusMsg { font-size: 12px; letter-spacing: 1px; text-transform: uppercase; }
+
+    button.sub-btn {
+      background-color: #eeeeee;
+      color: #333333;
+    }
+
+    /* 필터 탭 및 목록 영역 */
+    .filter-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 15px;
+      overflow-x: auto;
+      padding-bottom: 5px;
+    }
+
+    .filter-chip {
+      background-color: #f1f1f1;
+      border-radius: 16px;
+      padding: 6px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .filter-chip.active {
+      background-color: #111111;
+      color: #ffffff;
+    }
+
+    /* 작성된 메모 카드 목록 */
+    .memo-list {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .memo-item {
+      border: 1px solid #333333;
+      border-radius: 12px;
+      padding: 18px;
+      background-color: #ffffff;
+    }
+
+    .memo-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .category-badge {
+      font-size: 11px;
+      font-weight: 700;
+      background-color: #f0f0f0;
+      color: #444444;
+      padding: 4px 10px;
+      border-radius: 12px;
+      text-transform: uppercase;
+    }
+
+    .memo-date {
+      font-size: 12px;
+      color: #888888;
+    }
+
+    .memo-body {
+      font-size: 15px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
   </style>
 </head>
 <body>
 
-  <div id="loginView">
-    <div class="title-logo">PRIVATE LOG</div>
-    <button id="googleLoginBtn" class="btn-black">GOOGLE LOGIN</button>
-    <div id="loginError" style="color: #ff4d4f; font-size: 12px; margin-top: 10px;"></div>
-  </div>
+  <!-- 글 작성 및 카테고리 관리 영역 -->
+  <div class="card">
+    <div class="category-bar">
+      <!-- 기존 카테고리 선택 -->
+      <select id="categorySelect">
+        <option value="Normal">Normal</option>
+      </select>
 
-  <div id="mainView">
-    <div class="header">
-      <button class="btn" id="logoutBtn">LOGOUT</button>
-      <div class="category-wrapper">
-        <span class="category-label">CATEGORY</span>
-        <input type="text" id="categoryInput" class="category-tag" list="categoryList" placeholder="Normal" value="Normal">
-        <datalist id="categoryList">
-          <option value="Normal">
-          <option value="Idea">
-          <option value="Log">
-        </datalist>
-      </div>
+      <!-- 새 카테고리 즉시 추가 -->
+      <input type="text" id="newCategoryInput" class="input-category" placeholder="새 카테고리 이름...">
+      <button type="button" id="addCategoryBtn" class="sub-btn">카테고리 추가</button>
     </div>
 
-    <div class="toolbar">
-      <span>B</span> <span>U</span> <span style="text-decoration: line-through;">S</span> <span>≡</span> <span>"</span> <span>🔗</span>
-    </div>
+    <!-- 본문 작성 영역 -->
+    <textarea id="memoContent" placeholder="메모할 내용을 입력해라..."></textarea>
 
-    <div id="editor" class="editor-container" contenteditable="true"></div>
-
-    <div class="footer">
-      <span id="statusMsg"></span>
-      <button id="doneBtn" class="btn-black">DONE</button>
+    <div class="btn-group">
+      <button id="saveBtn">DONE</button>
     </div>
   </div>
 
+  <!-- 카테고리 필터 바 -->
+  <div class="filter-bar" id="filterBar">
+    <div class="filter-chip active" data-category="ALL">전체보기</div>
+  </div>
+
+  <!-- 불러온 글 목록이 뿌려지는 곳 -->
+  <div class="memo-list" id="memoList">
+    <!-- 자바스크립트로 자동 생성됨 -->
+  </div>
+
+  <!-- 파이어베이스 SDK (v10 모듈방식) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { 
+      getFirestore, 
+      collection, 
+      addDoc, 
+      onSnapshot, 
+      query, 
+      orderBy, 
+      serverTimestamp 
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    const ADMIN_EMAIL = "raizn199x@gmail.com";
-
+    // 1. 파이어베이스 콘솔에 있는 본인 프로젝트 설정 정보로 변경 필수!
     const firebaseConfig = {
-      apiKey: "AIzaSyDWYC-g2LwKA10RUXYB2_5vXNULAcbUVFo",
-      authDomain: "memo-9d3d7.firebaseapp.com",
-      projectId: "memo-9d3d7",
-      storageBucket: "memo-9d3d7.firebasestorage.app",
-      messagingSenderId: "648840817270",
-      appId: "1:648840817270:web:230131f24b1c311c41cd57",
-      measurementId: "G-JFYQHSE5MJ"
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
     };
 
     const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
     const db = getFirestore(app);
-    
-    const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: 'select_account' });
 
-    const loginView = document.getElementById('loginView');
-    const mainView = document.getElementById('mainView');
-    const googleLoginBtn = document.getElementById('googleLoginBtn');
-    const loginError = document.getElementById('loginError');
-    const logoutBtn = document.getElementById('logoutBtn');
-    
-    const statusMsg = document.getElementById('statusMsg');
-    const doneBtn = document.getElementById('doneBtn');
-    const editor = document.getElementById('editor');
-    const categoryInput = document.getElementById('categoryInput');
+    // DOM 요소
+    const categorySelect = document.getElementById("categorySelect");
+    const newCategoryInput = document.getElementById("newCategoryInput");
+    const addCategoryBtn = document.getElementById("addCategoryBtn");
+    const memoContent = document.getElementById("memoContent");
+    const saveBtn = document.getElementById("saveBtn");
+    const memoList = document.getElementById("memoList");
+    const filterBar = document.getElementById("filterBar");
 
-    setPersistence(auth, browserLocalPersistence);
+    let currentFilter = "ALL";
+    let categories = ["Normal"];
 
-    googleLoginBtn.addEventListener('click', async () => {
-      try {
-        await signInWithPopup(auth, provider);
-      } catch (error) {
-        loginError.innerText = "로그인 실패: " + error.message;
+    // 2. 카테고리 추가 로직
+    addCategoryBtn.addEventListener("click", () => {
+      const newCat = newCategoryInput.value.trim();
+      if (!newCat) return;
+      if (!categories.includes(newCat)) {
+        categories.push(newCat);
+        renderCategories();
+      }
+      categorySelect.value = newCat;
+      newCategoryInput.value = "";
+    });
+
+    function renderCategories() {
+      // 드롭다운 갱신
+      categorySelect.innerHTML = categories
+        .map(cat => `<option value="${cat}">${cat}</option>`)
+        .join("");
+
+      // 필터 바 갱신
+      let filterHTML = `<div class="filter-chip ${currentFilter === 'ALL' ? 'active' : ''}" data-category="ALL">전체보기</div>`;
+      categories.forEach(cat => {
+        filterHTML += `<div class="filter-chip ${currentFilter === cat ? 'active' : ''}" data-category="${cat}">${cat}</div>`;
+      });
+      filterBar.innerHTML = filterHTML;
+    }
+
+    // 필터 클릭 이벤트
+    filterBar.addEventListener("click", (e) => {
+      if (e.target.classList.contains("filter-chip")) {
+        currentFilter = e.target.getAttribute("data-category");
+        renderCategories();
+        fetchMemos(); // 필터 재적용
       }
     });
 
-    logoutBtn.addEventListener('click', () => {
-      signOut(auth);
-    });
-
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        if (user.email === ADMIN_EMAIL) {
-          loginView.style.display = "none";
-          mainView.style.display = "block";
-          loginError.innerText = "";
-        } else {
-          signOut(auth);
-          loginError.innerText = "접근 권한이 없는 계정입니다.";
-        }
-      } else {
-        loginView.style.display = "flex";
-        mainView.style.display = "none";
-      }
-    });
-
-    doneBtn.addEventListener('click', async () => {
-      const content = editor.innerHTML.trim();
-      const category = categoryInput.value.trim() || "Normal";
+    // 3. 메모 Firestore에 저장
+    saveBtn.addEventListener("click", async () => {
+      const content = memoContent.value.trim();
+      const category = categorySelect.value;
 
       if (!content) {
-        statusMsg.innerText = "EMPTY";
-        statusMsg.style.color = "#ff4d4f";
+        alert("내용을 입력해라!");
         return;
       }
 
       try {
-        statusMsg.innerText = "SAVING...";
-        statusMsg.style.color = "#888";
-        doneBtn.disabled = true;
-
         await addDoc(collection(db, "memos"), {
           category: category,
           content: content,
           createdAt: serverTimestamp()
         });
-
-        statusMsg.innerText = "SAVED";
-        statusMsg.style.color = "#0f172a";
-        editor.innerHTML = "";
-      } catch (e) {
-        statusMsg.innerText = "ERROR: " + e.message;
-        statusMsg.style.color = "#ff4d4f";
-      } finally {
-        doneBtn.disabled = false;
-        setTimeout(() => { statusMsg.innerText = ""; }, 2000);
+        memoContent.value = ""; // 입력창 비우기
+      } catch (error) {
+        console.error("저장 실패:", error);
+        alert("저장 중 오류가 발생함!");
       }
     });
+
+    // 4. Firestore에서 실시간 목록 불러오기 (최신순 정렬)
+    let memoDataList = [];
+
+    function fetchMemos() {
+      const q = query(collection(db, "memos"), orderBy("createdAt", "desc"));
+      
+      onSnapshot(q, (snapshot) => {
+        memoList.innerHTML = "";
+        memoDataList = [];
+
+        snapshot.forEach((doc) => {
+          memoDataList.push({ id: doc.id, ...doc.data() });
+        });
+
+        // 카테고리 필터링 적용
+        const filteredList = currentFilter === "ALL" 
+          ? memoDataList 
+          : memoDataList.filter(item => item.category === currentFilter);
+
+        if (filteredList.length === 0) {
+          memoList.innerHTML = `<div style="text-align:center; color:#888; padding:30px;">저장된 메모가 없다.</div>`;
+          return;
+        }
+
+        filteredList.forEach((memo) => {
+          // 날짜 포맷팅
+          let dateStr = "방금 전";
+          if (memo.createdAt) {
+            const date = memo.createdAt.toDate();
+            dateStr = `${date.getMonth() + 1}/${date.getDate()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+          }
+
+          const itemHTML = `
+            <div class="memo-item">
+              <div class="memo-header">
+                <span class="category-badge">${memo.category || 'Normal'}</span>
+                <span class="memo-date">${dateStr}</span>
+              </div>
+              <div class="memo-body">${escapeHTML(memo.content)}</div>
+            </div>
+          `;
+          memoList.innerHTML += itemHTML;
+        });
+      });
+    }
+
+    // HTML 태그 탈출 함수 (보안용)
+    function escapeHTML(str) {
+      return str.replace(/[&<>'"]/g, 
+        tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+      );
+    }
+
+    // 초기 실행
+    renderCategories();
+    fetchMemos();
   </script>
 </body>
 </html>
