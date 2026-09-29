@@ -15,9 +15,33 @@
     .header { display: flex; align-items: center; gap: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
     .btn { padding: 5px 15px; border: 1px solid #ccc; border-radius: 15px; background: #fff; cursor: pointer; font-size: 12px; letter-spacing: 1px; color: #888; }
     .btn-black { background: #000; color: #fff; border: none; padding: 10px 30px; border-radius: 20px; font-weight: bold; font-size: 14px; letter-spacing: 1px; cursor: pointer; }
+    
     .category-wrapper { display: flex; align-items: center; gap: 10px; }
     .category-label { font-size: 12px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
-    #categoryInput { border: none; border-bottom: 1px solid #ccc; outline: none; font-size: 16px; padding: 5px; width: 120px; color: #000; }
+    
+    /* 네이비색 타원형(알약 뱃지) 카테고리 태그 */
+    .category-tag { 
+      border: 1px solid #0f172a; 
+      background: #0f172a; /* 딥 네이비 */
+      color: #ffffff; /* 흰색 글씨 */
+      border-radius: 20px; /* 둥그런 타원형 */
+      outline: none; 
+      font-size: 12px; 
+      font-weight: 600;
+      padding: 6px 16px; 
+      width: 100px; 
+      text-align: center; 
+      letter-spacing: 0.5px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    /* 클릭해서 직접 수정/입력할 때 모드 */
+    .category-tag:focus {
+      background: #ffffff;
+      color: #0f172a;
+      border-color: #0f172a;
+      cursor: text;
+    }
     
     .toolbar { display: flex; gap: 15px; font-size: 14px; color: #555; padding-bottom: 10px; margin-bottom: 20px; font-weight: bold; }
     .editor-container { min-height: 400px; outline: none; font-size: 16px; line-height: 1.6; padding-bottom: 20px; }
@@ -38,7 +62,7 @@
       <button class="btn" id="logoutBtn">LOGOUT</button>
       <div class="category-wrapper">
         <span class="category-label">CATEGORY</span>
-        <input type="text" id="categoryInput" list="categoryList" placeholder="Normal" value="Normal">
+        <input type="text" id="categoryInput" class="category-tag" list="categoryList" placeholder="Normal" value="Normal">
         <datalist id="categoryList">
           <option value="Normal">
           <option value="Idea">
@@ -64,15 +88,17 @@
     import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    const ADMIN_EMAIL = "bluefig2021@gmail.com";
+    // 변경된 관리자 계정 이메일
+    const ADMIN_EMAIL = "raizn199x@gmail.com";
 
+    // 새로 생성한 파이어베이스 프로젝트의 SDK 정보로 입력하세요
     const firebaseConfig = {
-      apiKey: "AIzaSyAagWKtXuvQOhV-__Mxmd5ys8vs0xDDCUs",
-      authDomain: "water-log132.firebaseapp.com",
-      projectId: "water-log132",
-      storageBucket: "water-log132.firebasestorage.app",
-      messagingSenderId: "569667354916",
-      appId: "1:569667354916:web:6cc37173ed1c9c2cf7f3b1"
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.firebasestorage.app",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -80,7 +106,6 @@
     const db = getFirestore(app);
     
     const provider = new GoogleAuthProvider();
-    // 무조건 계정 선택 창을 강제로 띄우도록 설정
     provider.setCustomParameters({ prompt: 'select_account' });
 
     const loginView = document.getElementById('loginView');
@@ -146,7 +171,7 @@
         });
 
         statusMsg.innerText = "SAVED";
-        statusMsg.style.color = "black";
+        statusMsg.style.color = "#0f172a";
         editor.innerHTML = "";
       } catch (e) {
         statusMsg.innerText = "ERROR: " + e.message;
