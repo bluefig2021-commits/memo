@@ -1,68 +1,77 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MEMO</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
-  <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
   <style>
-    /* 미니멀 iOS 모노톤 에디터 */
-    .ql-toolbar.ql-snow {
-      border: none !important;
-      border-bottom: 1px solid #f1f5f9 !important;
-      padding: 8px 0 !important;
-    }
-    .ql-container.ql-snow {
-      border: none !important;
-      font-size: 15px;
-      min-height: 400px;
-    }
-    .ql-editor {
-      padding: 16px 0 !important;
-    }
-    .ql-editor.ql-blank::before {
-      color: #cbd5e1;
-      font-style: normal;
-      left: 0 !important;
-    }
-    .btn-pill {
-      transition: all 0.15s ease-in-out;
-    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 30px; color: #333; max-width: 800px; margin: 0 auto; background: #fff; }
+    
+    /* 로그인 화면 */
+    #loginView { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 80vh; gap: 20px; }
+    .title-logo { font-size: 12px; letter-spacing: 4px; color: #aaa; font-weight: bold; }
+    
+    /* 메인 메모 화면 */
+    #mainView { display: none; }
+    
+    .header { display: flex; align-items: center; gap: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
+    .btn { padding: 5px 15px; border: 1px solid #ccc; border-radius: 15px; background: #fff; cursor: pointer; font-size: 12px; letter-spacing: 1px; color: #888; }
+    .btn-black { background: #000; color: #fff; border: none; padding: 10px 30px; border-radius: 20px; font-weight: bold; font-size: 14px; letter-spacing: 1px; cursor: pointer; }
+    .category-wrapper { display: flex; align-items: center; gap: 10px; }
+    .category-label { font-size: 12px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
+    #categoryInput { border: none; border-bottom: 1px solid #ccc; outline: none; font-size: 16px; padding: 5px; width: 120px; color: #000; }
+    
+    .toolbar { display: flex; gap: 15px; font-size: 14px; color: #555; padding-bottom: 10px; margin-bottom: 20px; font-weight: bold; }
+    .editor-container { min-height: 400px; outline: none; font-size: 16px; line-height: 1.6; padding-bottom: 20px; }
+    .footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 20px; }
+    #statusMsg { font-size: 12px; letter-spacing: 1px; text-transform: uppercase; }
   </style>
 </head>
-<body class="bg-white min-h-screen flex items-center justify-center text-slate-900 antialiased font-sans p-4">
+<body>
 
-  <!-- MAIN MEMO VIEW (접속하자마자 바로 노출) -->
-  <div id="mainView" class="w-full max-w-2xl space-y-4">
-    
-    <!-- HEADER -->
-    <div class="flex justify-between items-center pb-3 border-b border-gray-100">
-      <div class="flex gap-2">
-        <button id="editBtn" class="btn-pill px-4 py-1.5 rounded-full border border-gray-200 text-xs text-gray-500 hover:border-gray-400 focus:outline-none">EDIT</button>
-        <!-- 팝업 대신 인라인 입력 필드로 변경 -->
-        <input type="text" id="categoryInput" value="CATEGORY" class="btn-pill w-28 px-4 py-1.5 rounded-full border border-gray-200 text-xs text-center text-gray-500 hover:border-gray-400 focus:outline-none focus:border-slate-900 focus:text-slate-900 bg-transparent">
+  <!-- 구글 로그인 화면 -->
+  <div id="loginView">
+    <div class="title-logo">PRIVATE LOG</div>
+    <button id="googleLoginBtn" class="btn-black">GOOGLE LOGIN</button>
+    <div id="loginError" style="color: #ff4d4f; font-size: 12px; margin-top: 10px;"></div>
+  </div>
+
+  <!-- 메인 메모 에디터 -->
+  <div id="mainView">
+    <div class="header">
+      <button class="btn" id="logoutBtn">LOGOUT</button>
+      <div class="category-wrapper">
+        <span class="category-label">CATEGORY</span>
+        <input type="text" id="categoryInput" list="categoryList" placeholder="Normal" value="Normal">
+        <datalist id="categoryList">
+          <option value="Normal">
+          <option value="Idea">
+          <option value="Log">
+        </datalist>
       </div>
-      <span class="text-[10px] text-gray-300 font-mono tracking-widest">LOG</span>
     </div>
 
-    <!-- WYSIWYG EDITOR -->
-    <div id="editor"></div>
+    <!-- 가짜 툴바 -->
+    <div class="toolbar">
+      <span>B</span> <span>U</span> <span style="text-decoration: line-through;">S</span> <span>≡</span> <span>"</span> <span>🔗</span>
+    </div>
 
-    <!-- ACTION BAR -->
-    <div class="flex justify-between items-center pt-3 border-t border-gray-100">
-      <span id="statusText" class="text-xs text-gray-400 font-mono tracking-wider"></span>
-      <button id="saveBtn" type="button" class="px-6 py-2 bg-black hover:bg-slate-900 text-white font-bold text-xs rounded-full tracking-widest transition disabled:bg-gray-200">
-        DONE
-      </button>
+    <!-- 에디터 영역 -->
+    <div id="editor" class="editor-container" contenteditable="true"></div>
+
+    <div class="footer">
+      <span id="statusMsg"></span>
+      <button id="doneBtn" class="btn-black">DONE</button>
     </div>
   </div>
 
-  <!-- FIREBASE & LOGIC (로그인 로직 완전 제거) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // 관리자 이메일 고정 설정
+    const ADMIN_EMAIL = "bluefig2021@gmail.com";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAagWKtXuvQOhV-__Mxmd5ys8vs0xDDCUs",
@@ -70,94 +79,85 @@
       projectId: "water-log132",
       storageBucket: "water-log132.firebasestorage.app",
       messagingSenderId: "569667354916",
-      appId: "1:569667354916:web:6cc37173ed1c9c2cf7f3b1",
-      measurementId: "G-2L6JGTPD41"
+      appId: "1:569667354916:web:6cc37173ed1c9c2cf7f3b1"
     };
 
     const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
     const db = getFirestore(app);
+    const provider = new GoogleAuthProvider();
 
-    // Quill 에디터 초기화
-    const quill = new Quill('#editor', {
-      theme: 'snow',
-      placeholder: '기록을 남기세요...',
-      modules: {
-        toolbar: [
-          [{ 'header': [1, 2, false] }],
-          ['bold', 'underline', 'strike'],
-          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-          ['blockquote', 'link'],
-          ['clean']
-        ]
-      }
-    });
-
+    const loginView = document.getElementById('loginView');
+    const mainView = document.getElementById('mainView');
+    const googleLoginBtn = document.getElementById('googleLoginBtn');
+    const loginError = document.getElementById('loginError');
+    const logoutBtn = document.getElementById('logoutBtn');
+    
+    const statusMsg = document.getElementById('statusMsg');
+    const doneBtn = document.getElementById('doneBtn');
+    const editor = document.getElementById('editor');
     const categoryInput = document.getElementById('categoryInput');
 
-    // 페이지 로드 시 바로 마지막 메모 불러오기
-    async function loadLastMemo() {
+    setPersistence(auth, browserLocalPersistence);
+
+    googleLoginBtn.addEventListener('click', async () => {
       try {
-        const q = query(collection(db, "memos"), orderBy("createdAt", "desc"), limit(1));
-        const snap = await getDocs(q);
-        snap.forEach((doc) => {
-          const data = doc.data();
-          quill.root.innerHTML = data.content;
-          
-          if (data.category && data.category !== 'CATEGORY') {
-            categoryInput.value = data.category;
-            categoryInput.classList.add('border-slate-900', 'text-slate-900');
-            categoryInput.classList.remove('border-gray-200', 'text-gray-500');
-          }
-        });
-      } catch (err) {
-        console.error("기존 데이터를 불러오지 못했습니다.", err);
+        await signInWithPopup(auth, provider);
+      } catch (error) {
+        loginError.innerText = "로그인 실패: " + error.message;
       }
-    }
-
-    loadLastMemo();
-
-    // EDIT 버튼 토글 기능
-    const editBtn = document.getElementById('editBtn');
-    editBtn.addEventListener('click', () => {
-      editBtn.classList.toggle('bg-slate-900');
-      editBtn.classList.toggle('text-white');
-      editBtn.classList.toggle('border-slate-900');
-      editBtn.classList.toggle('text-gray-500');
-      editBtn.classList.toggle('border-gray-200');
     });
 
-    // DONE 버튼 저장 기능
-    const saveBtn = document.getElementById('saveBtn');
-    const statusText = document.getElementById('statusText');
+    logoutBtn.addEventListener('click', () => {
+      signOut(auth);
+    });
 
-    saveBtn.addEventListener('click', async () => {
-      const htmlContent = quill.root.innerHTML;
-      const textContent = quill.getText().trim();
-      const currentCategory = categoryInput.value || 'CATEGORY';
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        if (user.email === ADMIN_EMAIL) {
+          loginView.style.display = "none";
+          mainView.style.display = "block";
+          loginError.innerText = "";
+        } else {
+          signOut(auth);
+          loginError.innerText = "접근 권한이 없는 계정입니다.";
+        }
+      } else {
+        loginView.style.display = "flex";
+        mainView.style.display = "none";
+      }
+    });
 
-      if (!textContent) {
-        statusText.innerText = 'EMPTY';
+    doneBtn.addEventListener('click', async () => {
+      const content = editor.innerHTML.trim();
+      const category = categoryInput.value.trim() || "Normal";
+
+      if (!content) {
+        statusMsg.innerText = "EMPTY";
+        statusMsg.style.color = "#ff4d4f";
         return;
       }
 
-      saveBtn.disabled = true;
-      statusText.innerText = 'SAVING...';
-
       try {
+        statusMsg.innerText = "SAVING...";
+        statusMsg.style.color = "#888";
+        doneBtn.disabled = true;
+
         await addDoc(collection(db, "memos"), {
-          content: htmlContent,
-          rawText: textContent,
-          category: currentCategory,
+          category: category,
+          content: content,
           createdAt: serverTimestamp()
         });
 
-        statusText.innerText = 'SAVED';
-        setTimeout(() => { statusText.innerText = ''; }, 2000);
-      } catch (err) {
-        console.error('Firestore save error:', err);
-        statusText.innerText = 'ERROR';
+        statusMsg.innerText = "SAVED";
+        statusMsg.style.color = "black";
+        editor.innerHTML = "";
+      } catch (e) {
+        statusMsg.innerText = "ERROR: " + e.message;
+        statusMsg.style.color = "#ff4d4f";
       } finally {
-        saveBtn.disabled = false;
+        doneBtn.disabled = false;
+        setTimeout(() => { statusMsg.innerText = ""; }, 2000);
       }
     });
   </script>
