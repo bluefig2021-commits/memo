@@ -5,50 +5,58 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MEMO</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 30px; color: #333; max-width: 800px; margin: 0 auto; background: #fff; }
-    
-    #loginView { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 80vh; gap: 20px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 16px; color: #333; margin: 0; background: #fff; }
+    .frame { max-width: 1000px; margin: 0 auto; min-height: calc(100vh - 34px); box-sizing: border-box; border: 1px solid #b5b5b5; border-radius: clamp(28px, 13vw, 190px); padding: clamp(24px, 5vw, 90px); }
+
+    #loginView { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 70vh; gap: 20px; }
     .title-logo { font-size: 12px; letter-spacing: 4px; color: #aaa; font-weight: bold; }
-    
     #mainView { display: none; }
-    
-    .header { display: flex; align-items: center; gap: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
+    .screen { display: none; }
+    .screen.on { display: block; }
+
+    .header { display: flex; align-items: center; gap: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 20px; flex-wrap: wrap; }
     .btn { padding: 5px 15px; border: 1px solid #ccc; border-radius: 15px; background: #fff; cursor: pointer; font-size: 12px; letter-spacing: 1px; color: #888; }
     .btn-black { background: #000; color: #fff; border: none; padding: 10px 30px; border-radius: 20px; font-weight: bold; font-size: 14px; letter-spacing: 1px; cursor: pointer; }
-    
+    .btn-black:disabled { opacity: .5; }
+
     .category-wrapper { display: flex; align-items: center; gap: 10px; }
     .category-label { font-size: 12px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
-    
-    /* 네이비색 타원형(알약 뱃지) 카테고리 태그 */
-    .category-tag { 
-      border: 1px solid #0f172a; 
-      background: #0f172a; 
-      color: #ffffff; 
-      border-radius: 20px; 
-      outline: none; 
-      font-size: 12px; 
-      font-weight: 600;
-      padding: 6px 16px; 
-      width: 100px; 
-      text-align: center; 
-      letter-spacing: 0.5px;
-      transition: all 0.2s ease;
-      cursor: pointer;
-    }
-    .category-tag:focus {
-      background: #ffffff;
-      color: #0f172a;
-      border-color: #0f172a;
-      cursor: text;
-    }
-    
+    .category-tag { border: 1px solid #0f172a; background: #0f172a; color: #fff; border-radius: 20px; outline: none; font-size: 12px; font-weight: 600; padding: 6px 16px; width: 100px; text-align: center; letter-spacing: .5px; transition: all .2s ease; cursor: pointer; }
+    .category-tag:focus { background: #fff; color: #0f172a; border-color: #0f172a; cursor: text; }
+
     .toolbar { display: flex; gap: 15px; font-size: 14px; color: #555; padding-bottom: 10px; margin-bottom: 20px; font-weight: bold; }
-    .editor-container { min-height: 400px; outline: none; font-size: 16px; line-height: 1.6; padding-bottom: 20px; }
+    .toolbar span { cursor: pointer; user-select: none; }
+    .toolbar span:hover { color: #000; }
+    .editor-container { min-height: 400px; outline: none; font-size: 16px; line-height: 1.6; padding-bottom: 20px; word-break: break-word; }
+    .editor-container img, .row-body img { max-width: 100%; border-radius: 12px; }
+    .editor-container blockquote { margin: 8px 0; padding-left: 12px; border-left: 2px solid #ccc; color: #777; }
     .footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 20px; }
     #statusMsg { font-size: 12px; letter-spacing: 1px; text-transform: uppercase; }
+    .foot-left { display: flex; align-items: center; gap: 15px; }
+    .link-del { display: none; background: none; border: none; color: #bbb; font-size: 12px; letter-spacing: 1px; cursor: pointer; }
+    .link-del:hover { color: #ff4d4f; }
+
+    /* 목록 (아이폰 메모 스타일) */
+    .search { width: 100%; box-sizing: border-box; border: none; background: #f3f3f4; border-radius: 12px; padding: 10px 16px; font-size: 14px; outline: none; margin-bottom: 14px; }
+    .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 10px; scrollbar-width: none; }
+    .chip { flex: none; border: 1px solid #ddd; background: #fff; color: #888; border-radius: 20px; padding: 5px 14px; font-size: 12px; cursor: pointer; }
+    .chip.on { background: #0f172a; border-color: #0f172a; color: #fff; }
+    .group { font-size: 12px; color: #aaa; letter-spacing: 1px; margin: 22px 0 6px; }
+    .list { border-radius: 14px; background: #f7f7f8; overflow: hidden; }
+    .row { display: flex; gap: 12px; align-items: center; padding: 12px 16px; cursor: pointer; border-bottom: 1px solid #ececee; margin-left: 0; }
+    .row:last-child { border-bottom: none; }
+    .row:hover { background: #f0f0f2; }
+    .row-main { flex: 1; min-width: 0; }
+    .row-title { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .row-sub { font-size: 13px; color: #999; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .row-sub b { font-weight: 500; color: #666; margin-right: 8px; }
+    .row-sub i { font-style: normal; margin-left: 8px; color: #0f172a; font-size: 11px; }
+    .thumb { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; flex: none; }
+    .empty { text-align: center; color: #bbb; font-size: 13px; padding: 60px 0; letter-spacing: 1px; }
   </style>
 </head>
 <body>
+<div class="frame">
 
   <div id="loginView">
     <div class="title-logo">PRIVATE LOG</div>
@@ -59,33 +67,48 @@
   <div id="mainView">
     <div class="header">
       <button class="btn" id="logoutBtn">LOGOUT</button>
-      <div class="category-wrapper">
+      <div class="category-wrapper" id="catWrap" style="display:none">
         <span class="category-label">CATEGORY</span>
-        <input type="text" id="categoryInput" class="category-tag" list="categoryList" placeholder="Normal" value="Normal">
-        <datalist id="categoryList">
-          <option value="Normal">
-          <option value="Idea">
-          <option value="Log">
-        </datalist>
+        <input type="text" id="categoryInput" class="category-tag" list="categoryList" placeholder="Normal" value="Normal" maxlength="14">
+        <datalist id="categoryList"></datalist>
       </div>
     </div>
 
-    <div class="toolbar">
-      <span>B</span> <span>U</span> <span style="text-decoration: line-through;">S</span> <span>≡</span> <span>"</span> <span>🔗</span>
+    <!-- 목록 화면 -->
+    <div id="listScreen" class="screen on">
+      <input class="search" id="searchInput" placeholder="검색">
+      <div class="chips" id="chips"></div>
+      <div id="listBox"></div>
+      <div class="footer" style="margin-top:30px">
+        <span id="countMsg" style="font-size:12px;color:#aaa;letter-spacing:1px"></span>
+        <button id="newBtn" class="btn-black">NEW</button>
+      </div>
     </div>
 
-    <div id="editor" class="editor-container" contenteditable="true"></div>
-
-    <div class="footer">
-      <span id="statusMsg"></span>
-      <button id="doneBtn" class="btn-black">DONE</button>
+    <!-- 작성 화면 -->
+    <div id="editScreen" class="screen">
+      <div class="toolbar">
+        <span data-cmd="bold">B</span> <span data-cmd="underline">U</span> <span data-cmd="strikeThrough" style="text-decoration: line-through;">S</span> <span data-cmd="insertUnorderedList">≡</span> <span data-cmd="quote">"</span> <span data-cmd="link">🔗</span> <span data-cmd="image">🖼</span>
+        <input type="file" id="filePick" accept="image/*" hidden>
+      </div>
+      <div id="editor" class="editor-container" contenteditable="true"></div>
+      <div class="footer">
+        <div class="foot-left">
+          <button id="backBtn" class="btn">BACK</button>
+          <span id="statusMsg"></span>
+          <button id="delBtn" class="link-del">DELETE</button>
+        </div>
+        <button id="doneBtn" class="btn-black">DONE</button>
+      </div>
     </div>
   </div>
+
+</div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const ADMIN_EMAIL = "raizn199x@gmail.com";
 
@@ -102,34 +125,24 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-    
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
 
-    const loginView = document.getElementById('loginView');
-    const mainView = document.getElementById('mainView');
-    const googleLoginBtn = document.getElementById('googleLoginBtn');
-    const loginError = document.getElementById('loginError');
-    const logoutBtn = document.getElementById('logoutBtn');
-    
-    const statusMsg = document.getElementById('statusMsg');
-    const doneBtn = document.getElementById('doneBtn');
-    const editor = document.getElementById('editor');
-    const categoryInput = document.getElementById('categoryInput');
+    const $ = (id) => document.getElementById(id);
+    const loginView = $('loginView'), mainView = $('mainView'), loginError = $('loginError');
+    const statusMsg = $('statusMsg'), doneBtn = $('doneBtn'), editor = $('editor'), categoryInput = $('categoryInput');
+    const listScreen = $('listScreen'), editScreen = $('editScreen'), catWrap = $('catWrap');
+
+    let memos = [], filter = "All", editingId = null, unsub = null;
+    const DEFAULT_CATS = ["Normal", "Idea", "Log"];
 
     setPersistence(auth, browserLocalPersistence);
 
-    googleLoginBtn.addEventListener('click', async () => {
-      try {
-        await signInWithPopup(auth, provider);
-      } catch (error) {
-        loginError.innerText = "로그인 실패: " + error.message;
-      }
+    $('googleLoginBtn').addEventListener('click', async () => {
+      try { await signInWithPopup(auth, provider); }
+      catch (error) { loginError.innerText = "로그인 실패: " + error.message; }
     });
-
-    logoutBtn.addEventListener('click', () => {
-      signOut(auth);
-    });
+    $('logoutBtn').addEventListener('click', () => signOut(auth));
 
     onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -137,47 +150,154 @@
           loginView.style.display = "none";
           mainView.style.display = "block";
           loginError.innerText = "";
+          startListening();
         } else {
           signOut(auth);
           loginError.innerText = "접근 권한이 없는 계정입니다.";
         }
       } else {
+        if (unsub) { unsub(); unsub = null; }
+        memos = [];
         loginView.style.display = "flex";
         mainView.style.display = "none";
       }
     });
 
+    function startListening() {
+      if (unsub) return;
+      const q = query(collection(db, "memos"), orderBy("createdAt", "desc"));
+      unsub = onSnapshot(q, (snap) => {
+        memos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        render();
+      }, (e) => { $('listBox').innerHTML = '<div class="empty">' + esc(e.message) + '</div>'; });
+    }
+
+    const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const cats = () => [...new Set([...DEFAULT_CATS, ...memos.map(m => m.category).filter(Boolean)])];
+    const toText = (html) => { const d = document.createElement('div'); d.innerHTML = html; return (d.textContent || "").trim(); };
+    const firstImg = (html) => { const d = document.createElement('div'); d.innerHTML = html; const i = d.querySelector('img'); return i ? i.src : null; };
+
+    function groupLabel(ts) {
+      if (!ts) return "방금";
+      const d = ts.toDate(), now = new Date(), day = 864e5;
+      const diff = (new Date(now.getFullYear(), now.getMonth(), now.getDate()) - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / day;
+      if (diff <= 0) return "오늘";
+      if (diff <= 7) return "지난 7일";
+      if (diff <= 30) return "지난 30일";
+      return d.getFullYear() + "년 " + (d.getMonth() + 1) + "월";
+    }
+    function shortDate(ts) {
+      if (!ts) return "";
+      const d = ts.toDate();
+      return (d.getMonth() + 1) + "/" + d.getDate() + " " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+    }
+
+    function render() {
+      $('chips').innerHTML = ["All", ...cats()].map(c => `<button class="chip ${c === filter ? 'on' : ''}" data-c="${esc(c)}">${esc(c)}</button>`).join("");
+      $('categoryList').innerHTML = cats().map(c => `<option value="${esc(c)}">`).join("");
+      const kw = $('searchInput').value.trim().toLowerCase();
+      const list = memos.filter(m => (filter === "All" || m.category === filter) && (!kw || toText(m.content || "").toLowerCase().includes(kw)));
+      $('countMsg').innerText = list.length + " NOTES";
+      if (!list.length) { $('listBox').innerHTML = '<div class="empty">' + (kw ? "검색 결과 없음" : "첫 기록을 남겨보세요") + '</div>'; return; }
+      let html = "", last = "", open = false;
+      for (const m of list) {
+        const g = groupLabel(m.createdAt);
+        if (g !== last) { if (open) html += "</div>"; html += `<div class="group">${esc(g)}</div><div class="list">`; last = g; open = true; }
+        const text = toText(m.content || "");
+        const lines = text.split(/\n|\s{2,}/).filter(Boolean);
+        const title = lines[0] || "(이미지)";
+        const img = firstImg(m.content || "");
+        html += `<div class="row" data-id="${m.id}"><div class="row-main"><div class="row-title">${esc(title.slice(0, 60))}</div><div class="row-sub"><b>${esc(shortDate(m.createdAt))}</b>${esc((lines[1] || text.slice(title.length)).slice(0, 60))}<i>${esc(m.category || "")}</i></div></div>${img ? `<img class="thumb" src="${esc(img)}">` : ""}</div>`;
+      }
+      $('listBox').innerHTML = html + "</div>";
+    }
+
+    $('chips').addEventListener('click', (e) => { const c = e.target.closest('.chip'); if (c) { filter = c.dataset.c; render(); } });
+    $('searchInput').addEventListener('input', render);
+    $('listBox').addEventListener('click', (e) => {
+      const r = e.target.closest('.row'); if (!r) return;
+      openEditor(memos.find(m => m.id === r.dataset.id));
+    });
+    $('newBtn').addEventListener('click', () => openEditor(null));
+    $('backBtn').addEventListener('click', showList);
+
+    function showList() {
+      editScreen.classList.remove('on'); listScreen.classList.add('on'); catWrap.style.display = "none"; editingId = null;
+    }
+    function openEditor(m) {
+      editingId = m ? m.id : null;
+      editor.innerHTML = m ? m.content : "";
+      categoryInput.value = m ? (m.category || "Normal") : (filter !== "All" ? filter : "Normal");
+      $('delBtn').style.display = m ? "inline" : "none";
+      listScreen.classList.remove('on'); editScreen.classList.add('on'); catWrap.style.display = "flex";
+      if (!m) editor.focus();
+    }
+
+    /* 툴바 */
+    $('editScreen').querySelector('.toolbar').addEventListener('mousedown', (e) => {
+      const s = e.target.closest('span[data-cmd]'); if (!s) return;
+      e.preventDefault();
+      const cmd = s.dataset.cmd;
+      editor.focus();
+      if (cmd === 'quote') document.execCommand('formatBlock', false, 'blockquote');
+      else if (cmd === 'link') {
+        const url = prompt("링크 주소");
+        if (url) document.execCommand('createLink', false, url.startsWith('http') ? url : 'https://' + url);
+      } else if (cmd === 'image') {
+        const url = prompt("이미지 링크를 붙여넣으세요 (비워두면 사진 선택)");
+        if (url === null) return;
+        if (url.trim()) document.execCommand('insertImage', false, url.trim());
+        else $('filePick').click();
+      } else document.execCommand(cmd);
+    });
+
+    /* 사진 업로드: 압축해서 글에 직접 포함 (Storage 없이 Firestore만 사용) */
+    $('filePick').addEventListener('change', (e) => { const f = e.target.files[0]; e.target.value = ""; if (f) insertPhoto(f); });
+    editor.addEventListener('paste', (e) => {
+      const f = [...(e.clipboardData?.files || [])].find(x => x.type.startsWith('image/'));
+      if (f) { e.preventDefault(); insertPhoto(f); }
+    });
+    function insertPhoto(file) {
+      const img = new Image(), url = URL.createObjectURL(file);
+      img.onload = () => {
+        const max = 900, r = Math.min(1, max / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * r); c.height = Math.round(img.height * r);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        editor.focus();
+        document.execCommand('insertImage', false, c.toDataURL('image/jpeg', 0.7));
+      };
+      img.src = url;
+    }
+
+    /* 저장 / 삭제 */
     doneBtn.addEventListener('click', async () => {
       const content = editor.innerHTML.trim();
       const category = categoryInput.value.trim() || "Normal";
-
-      if (!content) {
-        statusMsg.innerText = "EMPTY";
-        statusMsg.style.color = "#ff4d4f";
-        return;
-      }
-
+      const flash = (t, c) => { statusMsg.innerText = t; statusMsg.style.color = c; };
+      if (!toText(content) && !editor.querySelector('img')) return flash("EMPTY", "#ff4d4f");
+      if (content.length > 950000) return flash("TOO LARGE · 사진을 줄여주세요", "#ff4d4f");
       try {
-        statusMsg.innerText = "SAVING...";
-        statusMsg.style.color = "#888";
+        flash("SAVING...", "#888");
         doneBtn.disabled = true;
-
-        await addDoc(collection(db, "memos"), {
-          category: category,
-          content: content,
-          createdAt: serverTimestamp()
-        });
-
-        statusMsg.innerText = "SAVED";
-        statusMsg.style.color = "#0f172a";
+        if (editingId) await updateDoc(doc(db, "memos", editingId), { category, content, updatedAt: serverTimestamp() });
+        else await addDoc(collection(db, "memos"), { category, content, createdAt: serverTimestamp() });
+        flash("SAVED", "#0f172a");
         editor.innerHTML = "";
+        showList();
       } catch (e) {
-        statusMsg.innerText = "ERROR: " + e.message;
-        statusMsg.style.color = "#ff4d4f";
+        flash("ERROR: " + e.message, "#ff4d4f");
       } finally {
         doneBtn.disabled = false;
         setTimeout(() => { statusMsg.innerText = ""; }, 2000);
       }
+    });
+
+    $('delBtn').addEventListener('click', async () => {
+      if (!editingId || !confirm("이 기록을 삭제할까요?")) return;
+      try { await deleteDoc(doc(db, "memos", editingId)); showList(); }
+      catch (e) { statusMsg.innerText = "ERROR: " + e.message; statusMsg.style.color = "#ff4d4f"; }
     });
   </script>
 </body>
