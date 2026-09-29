@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -84,7 +84,7 @@
 
     <!-- 목록 화면 -->
     <div id="listScreen" class="screen on">
-      <input class="search" id="searchInput" placeholder="검색">
+      <input class="search" id="searchInput" placeholder="Search">
       <div class="chips" id="chips"></div>
       <div id="listBox"></div>
       <div class="footer" style="margin-top:30px">
@@ -148,7 +148,7 @@
 
     $('googleLoginBtn').addEventListener('click', async () => {
       try { await signInWithPopup(auth, provider); }
-      catch (error) { loginError.innerText = "로그인 실패: " + error.message; }
+      catch (error) { loginError.innerText = "Login failed: " + error.message; }
     });
     $('logoutBtn').addEventListener('click', () => signOut(auth));
 
@@ -161,7 +161,7 @@
           startListening();
         } else {
           signOut(auth);
-          loginError.innerText = "접근 권한이 없는 계정입니다.";
+          loginError.innerText = "This account has no access.";
         }
       } else {
         if (unsub) { unsub(); unsub = null; }
@@ -187,13 +187,13 @@
     const firstImg = (html) => { const d = document.createElement('div'); d.innerHTML = html; const i = d.querySelector('img'); return i ? i.src : null; };
 
     function groupLabel(ts) {
-      if (!ts) return "방금";
+      if (!ts) return "Just now";
       const d = ts.toDate(), now = new Date(), day = 864e5;
       const diff = (new Date(now.getFullYear(), now.getMonth(), now.getDate()) - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / day;
-      if (diff <= 0) return "오늘";
-      if (diff <= 7) return "지난 7일";
-      if (diff <= 30) return "지난 30일";
-      return d.getFullYear() + "년 " + (d.getMonth() + 1) + "월";
+      if (diff <= 0) return "Today";
+      if (diff <= 7) return "Previous 7 Days";
+      if (diff <= 30) return "Previous 30 Days";
+      return d.toLocaleString("en-US", { month: "long", year: "numeric" });
     }
     function shortDate(ts) {
       if (!ts) return "";
@@ -206,25 +206,25 @@
         ? `<span class="chip">${esc(c)}<a data-a="ren" data-c="${esc(c)}">✎</a><a data-a="del" data-c="${esc(c)}">×</a></span>`
         : `<button class="chip ${c === filter ? 'on' : ''}" data-c="${esc(c)}">${esc(c)}</button>`).join("")
         + (manage ? `<button class="chip" data-a="add">+</button>` : "") + `<button class="chip ghost" data-a="toggle">${manage ? "DONE" : "EDIT"}</button>`;
-      $('catMenu').innerHTML = cats().map(c => `<div class="cm ${c === categoryInput.value.trim() ? 'on' : ''}" data-c="${esc(c)}">${esc(c)}</div>`).join("") + '<div class="cm-hint">직접 입력하면 새 카테고리</div>';
+      $('catMenu').innerHTML = cats().map(c => `<div class="cm ${c === categoryInput.value.trim() ? 'on' : ''}" data-c="${esc(c)}">${esc(c)}</div>`).join("") + '<div class="cm-hint">Type to create new</div>';
       const kw = $('searchInput').value.trim().toLowerCase();
       const list = memos.filter(m => (filter === "All" || m.category === filter) && (!kw || toText(m.content || "").toLowerCase().includes(kw)));
       $('countMsg').innerText = list.length + " NOTES";
-      if (!list.length) { $('listBox').innerHTML = '<div class="empty">' + (kw ? "검색 결과 없음" : "첫 기록을 남겨보세요") + '</div>'; return; }
+      if (!list.length) { $('listBox').innerHTML = '<div class="empty">' + (kw ? "No results" : "Nothing here yet") + '</div>'; return; }
       let html = "", last = "", open = false;
       for (const m of list) {
         const g = groupLabel(m.createdAt);
         if (g !== last) { if (open) html += "</div>"; html += `<div class="group">${esc(g)}</div><div class="list">`; last = g; open = true; }
         const text = toText(m.content || "");
         const lines = text.split(/\n|\s{2,}/).filter(Boolean);
-        const title = lines[0] || "(이미지)";
+        const title = lines[0] || "(Image)";
         const img = firstImg(m.content || "");
         html += `<div class="row" data-id="${m.id}"><div class="row-main"><div class="row-title">${esc(title.slice(0, 60))}</div><div class="row-sub"><b>${esc(shortDate(m.createdAt))}</b>${esc((lines[1] || text.slice(title.length)).slice(0, 60))}<i>${esc(m.category || "")}</i></div></div>${img ? `<img class="thumb" src="${esc(img)}">` : ""}</div>`;
       }
       $('listBox').innerHTML = html + "</div>";
     }
 
-    const saveCats = (list) => setDoc(doc(db, "settings", "categories"), { list }).catch(e => alert("저장 실패: " + e.message));
+    const saveCats = (list) => setDoc(doc(db, "settings", "categories"), { list }).catch(e => alert("Save failed: " + e.message));
     async function moveMemos(from, to) {
       const hit = memos.filter(m => m.category === from);
       for (let i = 0; i < hit.length; i += 400) {
@@ -238,18 +238,18 @@
       const a = el.dataset.a, c = el.dataset.c;
       if (a === "toggle") { manage = !manage; return render(); }
       if (a === "add") {
-        const n = (prompt("새 카테고리 이름") || "").trim().slice(0, 14);
+        const n = (prompt("New category name") || "").trim().slice(0, 14);
         if (n && !cats().includes(n)) await saveCats([...cats(), n]);
         return;
       }
       if (a === "ren") {
-        const n = (prompt("카테고리 이름 변경", c) || "").trim().slice(0, 14);
+        const n = (prompt("Rename category", c) || "").trim().slice(0, 14);
         if (!n || n === c || cats().includes(n)) return;
         try { await moveMemos(c, n); await saveCats(cats().map(x => x === c ? n : x)); if (filter === c) filter = n; } catch (err) { alert(err.message); }
         return;
       }
       if (a === "del") {
-        if (!confirm(`"${c}" 카테고리를 삭제할까요?\n이 카테고리의 글은 Normal로 옮겨져요.`)) return;
+        if (!confirm(`Delete "${c}"?\nIts notes will move to Normal.`)) return;
         try { await moveMemos(c, "Normal"); await saveCats(cats().filter(x => x !== c)); if (filter === c) filter = "All"; } catch (err) { alert(err.message); }
         return;
       }
@@ -291,10 +291,10 @@
       editor.focus();
       if (cmd === 'quote') document.execCommand('formatBlock', false, 'blockquote');
       else if (cmd === 'link') {
-        const url = prompt("링크 주소");
+        const url = prompt("Link URL");
         if (url) document.execCommand('createLink', false, url.startsWith('http') ? url : 'https://' + url);
       } else if (cmd === 'image') {
-        const url = prompt("이미지 링크를 붙여넣으세요 (비워두면 사진 선택)");
+        const url = prompt("Image URL (leave empty to pick a photo)");
         if (url === null) return;
         if (url.trim()) document.execCommand('insertImage', false, url.trim());
         else $('filePick').click();
@@ -327,7 +327,7 @@
       const category = categoryInput.value.trim() || "Normal";
       const flash = (t, c) => { statusMsg.innerText = t; statusMsg.style.color = c; };
       if (!toText(content) && !editor.querySelector('img')) return flash("EMPTY", "#ff4d4f");
-      if (content.length > 950000) return flash("TOO LARGE · 사진을 줄여주세요", "#ff4d4f");
+      if (content.length > 950000) return flash("TOO LARGE · REMOVE A PHOTO", "#ff4d4f");
       try {
         flash("SAVING...", "#888");
         doneBtn.disabled = true;
@@ -345,7 +345,7 @@
     });
 
     $('delBtn').addEventListener('click', async () => {
-      if (!editingId || !confirm("이 기록을 삭제할까요?")) return;
+      if (!editingId || !confirm("Delete this note?")) return;
       try { await deleteDoc(doc(db, "memos", editingId)); showList(); }
       catch (e) { statusMsg.innerText = "ERROR: " + e.message; statusMsg.style.color = "#ff4d4f"; }
     });
