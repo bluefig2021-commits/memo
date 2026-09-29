@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,11 +8,11 @@
   <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
   <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
   <style>
-    /* 미니멀 에디터 스타일 */
+    /* 미니멀 에디터 커스텀 */
     .ql-toolbar.ql-snow {
       border: none !important;
-      border-bottom: 1px solid #e5e7eb !important;
-      padding: 10px 0 !important;
+      border-bottom: 1px solid #f1f5f9 !important;
+      padding: 8px 0 !important;
     }
     .ql-container.ql-snow {
       border: none !important;
@@ -20,43 +20,45 @@
       min-height: 400px;
     }
     .ql-editor {
-      padding: 20px 0 !important;
+      padding: 16px 0 !important;
     }
     .ql-editor.ql-blank::before {
-      color: #9ca3af;
+      color: #cbd5e1;
       font-style: normal;
       left: 0 !important;
     }
-    /* 버튼 트랜지션 */
-    .toggle-btn {
-      transition: all 0.2s ease-in-out;
+    .btn-pill {
+      transition: all 0.15s ease-in-out;
     }
   </style>
 </head>
-<body class="bg-white min-h-screen flex items-center justify-center text-gray-900 font-sans antialiased">
+<body class="bg-white min-h-screen flex items-center justify-center text-slate-900 antialiased font-sans">
 
-  <!-- 1. LOGIN VIEW (캡처본 참고하여 직선적이고 미니멀하게 구성) -->
-  <div id="loginView" class="w-full max-w-sm border border-gray-200 p-8 space-y-6">
-    <h1 class="text-lg font-bold tracking-widest">LOG IN</h1>
+  <!-- 1. LOGIN VIEW (투박한 타이틀/테두리 박스 전면 제거, 밑줄형 라인 인풋) -->
+  <div id="loginView" class="w-full max-w-[280px] p-4 space-y-6">
     <div class="space-y-4">
-      <input type="email" id="emailInput" placeholder="EMAIL" class="w-full p-3 border border-gray-200 text-sm focus:outline-none focus:border-black transition">
-      <input type="password" id="passwordInput" placeholder="PASSWORD" class="w-full p-3 border border-gray-200 text-sm focus:outline-none focus:border-black transition">
-      <button id="loginBtn" class="w-full py-4 bg-black text-white text-sm tracking-widest font-bold hover:bg-gray-800 transition">ENTRANCE</button>
+      <div>
+        <input type="email" id="emailInput" placeholder="EMAIL" class="w-full py-2.5 bg-transparent border-b border-gray-200 text-xs tracking-widest placeholder:text-gray-300 focus:outline-none focus:border-black transition">
+      </div>
+      <div>
+        <input type="password" id="passwordInput" placeholder="PASSWORD" class="w-full py-2.5 bg-transparent border-b border-gray-200 text-xs tracking-widest placeholder:text-gray-300 focus:outline-none focus:border-black transition">
+      </div>
+      <button id="loginBtn" class="w-full py-3 mt-3 bg-black hover:bg-slate-900 text-white rounded-full text-xs tracking-widest font-mono transition active:scale-95">ENTER</button>
     </div>
-    <p id="loginError" class="text-xs text-red-500 min-h-[16px]"></p>
+    <p id="loginError" class="text-[11px] text-red-500 text-center min-h-[16px] font-mono"></p>
   </div>
 
-  <!-- 2. MAIN MEMO VIEW (제목 없음, 수정/분류 타원형 버튼) -->
-  <div id="mainView" class="hidden w-full max-w-3xl p-6 space-y-4">
+  <!-- 2. MAIN MEMO VIEW -->
+  <div id="mainView" class="hidden w-full max-w-2xl p-6 space-y-4">
     
-    <!-- HEADER (타원형 토글 버튼 및 로그아웃) -->
-    <div class="flex justify-between items-center pb-4 border-b border-gray-100">
+    <!-- HEADER (타원형 토글 버튼 & 우측 LOGOUT) -->
+    <div class="flex justify-between items-center pb-3 border-b border-gray-100">
       <div class="flex gap-2">
-        <button id="editBtn" class="toggle-btn px-5 py-1.5 rounded-full border border-gray-300 text-sm text-gray-600 hover:border-gray-500 focus:outline-none">수정</button>
-        <button id="categoryBtn" class="toggle-btn px-5 py-1.5 rounded-full border border-gray-300 text-sm text-gray-600 hover:border-gray-500 focus:outline-none">분류</button>
+        <button id="editBtn" class="btn-pill px-4 py-1.5 rounded-full border border-gray-200 text-xs text-gray-500 hover:border-gray-400 focus:outline-none">수정</button>
+        <button id="categoryBtn" class="btn-pill px-4 py-1.5 rounded-full border border-gray-200 text-xs text-gray-500 hover:border-gray-400 focus:outline-none">분류</button>
       </div>
-      <button id="logoutBtn" type="button" class="text-xs text-gray-400 hover:text-black transition">
-        SIGN OUT
+      <button id="logoutBtn" type="button" class="text-[11px] text-gray-300 hover:text-black tracking-wider transition font-mono">
+        LOGOUT
       </button>
     </div>
 
@@ -64,9 +66,9 @@
     <div id="editor"></div>
 
     <!-- ACTION BAR -->
-    <div class="flex justify-between items-center pt-4 border-t border-gray-100">
+    <div class="flex justify-between items-center pt-3 border-t border-gray-100">
       <span id="statusText" class="text-xs text-gray-400 font-mono"></span>
-      <button id="saveBtn" type="button" class="px-6 py-2.5 bg-black hover:bg-gray-800 text-white font-medium text-sm rounded-full transition disabled:bg-gray-300">
+      <button id="saveBtn" type="button" class="px-5 py-2 bg-black hover:bg-slate-900 text-white font-medium text-xs rounded-full transition disabled:bg-gray-200">
         저장
       </button>
     </div>
@@ -75,10 +77,9 @@
   <!-- FIREBASE & LOGIC -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // 전달받은 Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyAagWKtXuvQOhV-__Mxmd5ys8vs0xDDCUs",
       authDomain: "water-log132.firebaseapp.com",
@@ -93,7 +94,10 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // Quill 에디터 초기화
+    // 한 번 로그인하면 세션 영구 유지 (다시는 로그인 창 안 뜸)
+    setPersistence(auth, browserLocalPersistence).catch(console.error);
+
+    // Quill 에디터
     const quill = new Quill('#editor', {
       theme: 'snow',
       placeholder: '내용을 입력하세요...',
@@ -114,22 +118,19 @@
     const logoutBtn = document.getElementById('logoutBtn');
     const loginError = document.getElementById('loginError');
 
-    // UI 토글 버튼 로직 (누르면 네이비/블랙 계열로 색상 반전)
-    const toggleActiveState = (buttonElement) => {
-      buttonElement.classList.toggle('bg-slate-900'); // 네이비/블랙 톤
-      buttonElement.classList.toggle('text-white');
-      buttonElement.classList.toggle('border-slate-900');
-      buttonElement.classList.toggle('text-gray-600');
-      buttonElement.classList.toggle('border-gray-300');
+    // 타원형 버튼 클릭 시 색상 토글 (네이비/블랙 계열)
+    const setupToggleBtn = (id) => {
+      const btn = document.getElementById(id);
+      btn.addEventListener('click', () => {
+        btn.classList.toggle('bg-slate-900');
+        btn.classList.toggle('text-white');
+        btn.classList.toggle('border-slate-900');
+        btn.classList.toggle('text-gray-500');
+        btn.classList.toggle('border-gray-200');
+      });
     };
-
-    document.getElementById('editBtn').addEventListener('click', function() {
-      toggleActiveState(this);
-    });
-
-    document.getElementById('categoryBtn').addEventListener('click', function() {
-      toggleActiveState(this);
-    });
+    setupToggleBtn('editBtn');
+    setupToggleBtn('categoryBtn');
 
     // 로그인 상태 감지
     onAuthStateChanged(auth, (user) => {
@@ -149,7 +150,7 @@
       loginError.innerText = '';
 
       if (!email || !password) {
-        loginError.innerText = '이메일과 비밀번호를 입력해.';
+        loginError.innerText = 'Required.';
         return;
       }
 
@@ -157,8 +158,13 @@
         await signInWithEmailAndPassword(auth, email, password);
       } catch (err) {
         console.error("Login failed:", err);
-        loginError.innerText = '로그인 실패. 계정 정보를 확인해.';
+        loginError.innerText = 'Auth failed.';
       }
+    });
+
+    // 비밀번호 입력 후 엔터 누르면 자동 진행
+    document.getElementById('passwordInput').addEventListener('keyup', (e) => {
+      if (e.key === 'Enter') loginBtn.click();
     });
 
     // 로그아웃
@@ -179,7 +185,7 @@
       const textContent = quill.getText().trim();
 
       if (!textContent) {
-        statusText.innerText = '내용이 없어.';
+        statusText.innerText = '내용 없음';
         return;
       }
 
@@ -198,7 +204,7 @@
         setTimeout(() => { statusText.innerText = ''; }, 2000);
       } catch (err) {
         console.error('Firestore save error:', err);
-        statusText.innerText = '저장 에러 발생';
+        statusText.innerText = '저장 에러';
       } finally {
         saveBtn.disabled = false;
       }
