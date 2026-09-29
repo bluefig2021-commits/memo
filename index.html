@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MEMO</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 16px; color: #333; margin: 0; background: #fff; }
-    .frame { max-width: 1000px; margin: 0 auto; min-height: calc(100vh - 34px); box-sizing: border-box; border: 1px solid #b5b5b5; border-radius: clamp(28px, 13vw, 190px); padding: clamp(24px, 5vw, 90px); }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: clamp(12px, 4vw, 48px) 16px; color: #333; margin: 0; background: #f4f4f4; }
+    .frame { max-width: 800px; margin: 0 auto; box-sizing: border-box; background: #fdfdfd; border: 1px solid #e6e6e6; border-radius: 24px; padding: clamp(20px, 4vw, 40px); }
 
-    #loginView { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 70vh; gap: 20px; }
+    #loginView { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 50vh; gap: 20px; }
     .title-logo { font-size: 12px; letter-spacing: 4px; color: #aaa; font-weight: bold; }
     #mainView { display: none; }
     .screen { display: none; }
@@ -41,6 +41,9 @@
     .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 10px; scrollbar-width: none; }
     .chip { flex: none; border: 1px solid #ddd; background: #fff; color: #888; border-radius: 20px; padding: 5px 14px; font-size: 12px; cursor: pointer; }
     .chip.on { background: #0f172a; border-color: #0f172a; color: #fff; }
+    .chip.ghost { border-color: transparent; background: none; color: #bbb; letter-spacing: 1px; }
+    .chip a { margin-left: 8px; opacity: .55; cursor: pointer; }
+    .chip a:hover { opacity: 1; }
     .group { font-size: 12px; color: #aaa; letter-spacing: 1px; margin: 22px 0 6px; }
     .list { border-radius: 14px; background: #f7f7f8; overflow: hidden; }
     .row { display: flex; gap: 12px; align-items: center; padding: 12px 16px; cursor: pointer; border-bottom: 1px solid #ececee; margin-left: 0; }
@@ -108,7 +111,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, updateDoc, deleteDoc, setDoc, writeBatch, doc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const ADMIN_EMAIL = "raizn199x@gmail.com";
 
@@ -133,7 +136,7 @@
     const statusMsg = $('statusMsg'), doneBtn = $('doneBtn'), editor = $('editor'), categoryInput = $('categoryInput');
     const listScreen = $('listScreen'), editScreen = $('editScreen'), catWrap = $('catWrap');
 
-    let memos = [], filter = "All", editingId = null, unsub = null;
+    let saved = null, manage = false, memos = [], filter = "All", editingId = null, unsub = null;
     const DEFAULT_CATS = ["Normal", "Idea", "Log"];
 
     setPersistence(auth, browserLocalPersistence);
@@ -166,6 +169,7 @@
     function startListening() {
       if (unsub) return;
       const q = query(collection(db, "memos"), orderBy("createdAt", "desc"));
+      onSnapshot(doc(db, "settings", "categories"), (s) => { saved = s.exists() ? s.data().list : null; render(); }, () => {});
       unsub = onSnapshot(q, (snap) => {
         memos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         render();
@@ -173,7 +177,7 @@
     }
 
     const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-    const cats = () => [...new Set([...DEFAULT_CATS, ...memos.map(m => m.category).filter(Boolean)])];
+    const cats = () => [...new Set(["Normal", ...(saved || DEFAULT_CATS), ...memos.map(m => m.category).filter(Boolean)])];
     const toText = (html) => { const d = document.createElement('div'); d.innerHTML = html; return (d.textContent || "").trim(); };
     const firstImg = (html) => { const d = document.createElement('div'); d.innerHTML = html; const i = d.querySelector('img'); return i ? i.src : null; };
 
@@ -193,7 +197,10 @@
     }
 
     function render() {
-      $('chips').innerHTML = ["All", ...cats()].map(c => `<button class="chip ${c === filter ? 'on' : ''}" data-c="${esc(c)}">${esc(c)}</button>`).join("");
+      $('chips').innerHTML = ["All", ...cats()].map(c => manage && c !== "All" && c !== "Normal"
+        ? `<span class="chip">${esc(c)}<a data-a="ren" data-c="${esc(c)}">✎</a><a data-a="del" data-c="${esc(c)}">×</a></span>`
+        : `<button class="chip ${c === filter ? 'on' : ''}" data-c="${esc(c)}">${esc(c)}</button>`).join("")
+        + (manage ? `<button class="chip" data-a="add">+</button>` : "") + `<button class="chip ghost" data-a="toggle">${manage ? "DONE" : "EDIT"}</button>`;
       $('categoryList').innerHTML = cats().map(c => `<option value="${esc(c)}">`).join("");
       const kw = $('searchInput').value.trim().toLowerCase();
       const list = memos.filter(m => (filter === "All" || m.category === filter) && (!kw || toText(m.content || "").toLowerCase().includes(kw)));
@@ -212,7 +219,37 @@
       $('listBox').innerHTML = html + "</div>";
     }
 
-    $('chips').addEventListener('click', (e) => { const c = e.target.closest('.chip'); if (c) { filter = c.dataset.c; render(); } });
+    const saveCats = (list) => setDoc(doc(db, "settings", "categories"), { list }).catch(e => alert("저장 실패: " + e.message));
+    async function moveMemos(from, to) {
+      const hit = memos.filter(m => m.category === from);
+      for (let i = 0; i < hit.length; i += 400) {
+        const b = writeBatch(db);
+        hit.slice(i, i + 400).forEach(m => b.update(doc(db, "memos", m.id), { category: to }));
+        await b.commit();
+      }
+    }
+    $('chips').addEventListener('click', async (e) => {
+      const el = e.target.closest('[data-a], .chip'); if (!el) return;
+      const a = el.dataset.a, c = el.dataset.c;
+      if (a === "toggle") { manage = !manage; return render(); }
+      if (a === "add") {
+        const n = (prompt("새 카테고리 이름") || "").trim().slice(0, 14);
+        if (n && !cats().includes(n)) await saveCats([...cats(), n]);
+        return;
+      }
+      if (a === "ren") {
+        const n = (prompt("카테고리 이름 변경", c) || "").trim().slice(0, 14);
+        if (!n || n === c || cats().includes(n)) return;
+        try { await moveMemos(c, n); await saveCats(cats().map(x => x === c ? n : x)); if (filter === c) filter = n; } catch (err) { alert(err.message); }
+        return;
+      }
+      if (a === "del") {
+        if (!confirm(`"${c}" 카테고리를 삭제할까요?\n이 카테고리의 글은 Normal로 옮겨져요.`)) return;
+        try { await moveMemos(c, "Normal"); await saveCats(cats().filter(x => x !== c)); if (filter === c) filter = "All"; } catch (err) { alert(err.message); }
+        return;
+      }
+      if (c) { filter = c; render(); }
+    });
     $('searchInput').addEventListener('input', render);
     $('listBox').addEventListener('click', (e) => {
       const r = e.target.closest('.row'); if (!r) return;
