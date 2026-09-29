@@ -7,11 +7,9 @@
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 30px; color: #333; max-width: 800px; margin: 0 auto; background: #fff; }
     
-    /* 로그인 화면 */
     #loginView { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 80vh; gap: 20px; }
     .title-logo { font-size: 12px; letter-spacing: 4px; color: #aaa; font-weight: bold; }
     
-    /* 메인 메모 화면 */
     #mainView { display: none; }
     
     .header { display: flex; align-items: center; gap: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
@@ -29,14 +27,12 @@
 </head>
 <body>
 
-  <!-- 구글 로그인 화면 -->
   <div id="loginView">
     <div class="title-logo">PRIVATE LOG</div>
     <button id="googleLoginBtn" class="btn-black">GOOGLE LOGIN</button>
     <div id="loginError" style="color: #ff4d4f; font-size: 12px; margin-top: 10px;"></div>
   </div>
 
-  <!-- 메인 메모 에디터 -->
   <div id="mainView">
     <div class="header">
       <button class="btn" id="logoutBtn">LOGOUT</button>
@@ -51,12 +47,10 @@
       </div>
     </div>
 
-    <!-- 가짜 툴바 -->
     <div class="toolbar">
       <span>B</span> <span>U</span> <span style="text-decoration: line-through;">S</span> <span>≡</span> <span>"</span> <span>🔗</span>
     </div>
 
-    <!-- 에디터 영역 -->
     <div id="editor" class="editor-container" contenteditable="true"></div>
 
     <div class="footer">
@@ -70,7 +64,6 @@
     import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // 관리자 이메일 고정 설정
     const ADMIN_EMAIL = "bluefig2021@gmail.com";
 
     const firebaseConfig = {
@@ -85,7 +78,10 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
+    
     const provider = new GoogleAuthProvider();
+    // 무조건 계정 선택 창을 강제로 띄우도록 설정
+    provider.setCustomParameters({ prompt: 'select_account' });
 
     const loginView = document.getElementById('loginView');
     const mainView = document.getElementById('mainView');
