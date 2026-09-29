@@ -50,6 +50,11 @@
     .cm:hover { background: #f3f3f4; }
     .cm.on { color: #0f172a; font-weight: 600; }
     .cm-hint { padding: 6px 14px 4px; font-size: 11px; color: #bbb; }
+    .editor-container img { cursor: pointer; }
+    .editor-container img.sel { outline: 2px solid #0f172a; outline-offset: 2px; }
+    #imgBar { display: none; position: fixed; z-index: 9; background: #fff; border: 1px solid #e6e6e6; border-radius: 20px; padding: 4px 6px; font-size: 12px; }
+    #imgBar span { padding: 4px 10px; border-radius: 14px; cursor: pointer; color: #555; user-select: none; }
+    #imgBar span:hover { background: #f3f3f4; color: #000; }
     .group { font-size: 12px; color: #aaa; letter-spacing: 1px; margin: 22px 0 6px; }
     .list { border-radius: 14px; background: #f7f7f8; overflow: hidden; }
     .row { display: flex; gap: 12px; align-items: center; padding: 12px 16px; cursor: pointer; border-bottom: 1px solid #ececee; margin-left: 0; }
@@ -112,6 +117,7 @@
   </div>
 
 </div>
+<div id="imgBar"><span data-w="25">S</span><span data-w="50">M</span><span data-w="75">L</span><span data-w="100">Full</span><span data-w="x">×</span></div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -141,7 +147,7 @@
     const statusMsg = $('statusMsg'), doneBtn = $('doneBtn'), editor = $('editor'), categoryInput = $('categoryInput');
     const listScreen = $('listScreen'), editScreen = $('editScreen'), catWrap = $('catWrap');
 
-    let saved = null, manage = false, memos = [], filter = "All", editingId = null, unsub = null;
+    let saved = null, allLabel = "All", manage = false, memos = [], filter = "All", editingId = null, unsub = null;
     const DEFAULT_CATS = ["Normal", "Idea", "Log"];
 
     setPersistence(auth, browserLocalPersistence);
@@ -174,7 +180,7 @@
     function startListening() {
       if (unsub) return;
       const q = query(collection(db, "memos"), orderBy("createdAt", "desc"));
-      onSnapshot(doc(db, "settings", "categories"), (s) => { saved = s.exists() ? s.data().list : null; render(); }, () => {});
+      onSnapshot(doc(db, "settings", "categories"), (s) => { saved = s.exists() ? s.data().list : null; allLabel = (s.exists() && s.data().allLabel) || "All"; render(); }, () => {});
       unsub = onSnapshot(q, (snap) => {
         memos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         render();
@@ -182,7 +188,7 @@
     }
 
     const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-    const cats = () => [...new Set(["Normal", ...(saved || DEFAULT_CATS), ...memos.map(m => m.category).filter(Boolean)])];
+    const cats = () => [...new Set([...(saved || DEFAULT_CATS), ...memos.map(m => m.category).filter(Boolean)])];
     const toText = (html) => { const d = document.createElement('div'); d.innerHTML = html; return (d.textContent || "").trim(); };
     const firstImg = (html) => { const d = document.createElement('div'); d.innerHTML = html; const i = d.querySelector('img'); return i ? i.src : null; };
 
@@ -202,9 +208,9 @@
     }
 
     function render() {
-      $('chips').innerHTML = ["All", ...cats()].map(c => manage && c !== "All" && c !== "Normal"
-        ? `<span class="chip">${esc(c)}<a data-a="ren" data-c="${esc(c)}">✎</a><a data-a="del" data-c="${esc(c)}">×</a></span>`
-        : `<button class="chip ${c === filter ? 'on' : ''}" data-c="${esc(c)}">${esc(c)}</button>`).join("")
+      $('chips').innerHTML = ["All", ...cats()].map(c => manage
+        ? `<span class="chip">${esc(c === "All" ? allLabel : c)}<a data-a="${c === "All" ? "renall" : "ren"}" data-c="${esc(c)}">✎</a>${c === "All" ? "" : `<a data-a="del" data-c="${esc(c)}">×</a>`}</span>`
+        : `<button class="chip ${c === filter ? 'on' : ''}" data-c="${esc(c)}">${esc(c === "All" ? allLabel : c)}</button>`).join("")
         + (manage ? `<button class="chip" data-a="add">+</button>` : "") + `<button class="chip ghost" data-a="toggle">${manage ? "DONE" : "EDIT"}</button>`;
       $('catMenu').innerHTML = cats().map(c => `<div class="cm ${c === categoryInput.value.trim() ? 'on' : ''}" data-c="${esc(c)}">${esc(c)}</div>`).join("") + '<div class="cm-hint">Type to create new</div>';
       const kw = $('searchInput').value.trim().toLowerCase();
@@ -224,7 +230,7 @@
       $('listBox').innerHTML = html + "</div>";
     }
 
-    const saveCats = (list) => setDoc(doc(db, "settings", "categories"), { list }).catch(e => alert("Save failed: " + e.message));
+    const saveCats = (list, label = allLabel) => setDoc(doc(db, "settings", "categories"), { list, allLabel: label }).catch(e => alert("Save failed: " + e.message));
     async function moveMemos(from, to) {
       const hit = memos.filter(m => m.category === from);
       for (let i = 0; i < hit.length; i += 400) {
@@ -242,6 +248,11 @@
         if (n && !cats().includes(n)) await saveCats([...cats(), n]);
         return;
       }
+      if (a === "renall") {
+        const n = (prompt("Rename", allLabel) || "").trim().slice(0, 14);
+        if (n) await saveCats(cats(), n);
+        return;
+      }
       if (a === "ren") {
         const n = (prompt("Rename category", c) || "").trim().slice(0, 14);
         if (!n || n === c || cats().includes(n)) return;
@@ -249,8 +260,10 @@
         return;
       }
       if (a === "del") {
-        if (!confirm(`Delete "${c}"?\nIts notes will move to Normal.`)) return;
-        try { await moveMemos(c, "Normal"); await saveCats(cats().filter(x => x !== c)); if (filter === c) filter = "All"; } catch (err) { alert(err.message); }
+        const to = cats().find(x => x !== c);
+        if (!to) return alert("Keep at least one category.");
+        if (!confirm(`Delete "${c}"?\nIts notes will move to ${to}.`)) return;
+        try { await moveMemos(c, to); await saveCats(cats().filter(x => x !== c)); if (filter === c) filter = "All"; } catch (err) { alert(err.message); }
         return;
       }
       if (c) { filter = c; render(); }
@@ -277,7 +290,7 @@
     function openEditor(m) {
       editingId = m ? m.id : null;
       editor.innerHTML = m ? m.content : "";
-      categoryInput.value = m ? (m.category || "Normal") : (filter !== "All" ? filter : "Normal");
+      categoryInput.value = m ? (m.category || cats()[0]) : (filter !== "All" ? filter : cats()[0] || "Normal");
       $('delBtn').style.display = m ? "inline" : "none";
       listScreen.classList.remove('on'); editScreen.classList.add('on'); catWrap.style.display = "flex";
       if (!m) editor.focus();
@@ -301,6 +314,24 @@
       } else document.execCommand(cmd);
     });
 
+    let selImg = null;
+    const hideBar = () => { $('imgBar').style.display = "none"; if (selImg) selImg.classList.remove('sel'); selImg = null; };
+    editor.addEventListener('click', (e) => {
+      hideBar();
+      if (e.target.tagName !== "IMG") return;
+      selImg = e.target; selImg.classList.add('sel');
+      const r = selImg.getBoundingClientRect(), bar = $('imgBar');
+      bar.style.display = "block"; bar.style.left = Math.max(8, r.left) + "px"; bar.style.top = (r.bottom + 8) + "px";
+    });
+    $('imgBar').addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      const w = e.target.dataset.w; if (!w || !selImg) return;
+      if (w === "x") selImg.remove(); else selImg.style.width = w + "%";
+      hideBar();
+    });
+    window.addEventListener('scroll', hideBar, true);
+    window.addEventListener('resize', hideBar);
+
     /* 사진 업로드: 압축해서 글에 직접 포함 (Storage 없이 Firestore만 사용) */
     $('filePick').addEventListener('change', (e) => { const f = e.target.files[0]; e.target.value = ""; if (f) insertPhoto(f); });
     editor.addEventListener('paste', (e) => {
@@ -321,10 +352,11 @@
       img.src = url;
     }
 
-    /* 저장 / 삭제 */
+
     doneBtn.addEventListener('click', async () => {
+      hideBar();
       const content = editor.innerHTML.trim();
-      const category = categoryInput.value.trim() || "Normal";
+      const category = categoryInput.value.trim() || cats()[0] || "Normal";
       const flash = (t, c) => { statusMsg.innerText = t; statusMsg.style.color = c; };
       if (!toText(content) && !editor.querySelector('img')) return flash("EMPTY", "#ff4d4f");
       if (content.length > 950000) return flash("TOO LARGE · REMOVE A PHOTO", "#ff4d4f");
