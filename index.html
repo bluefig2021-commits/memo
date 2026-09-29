@@ -22,9 +22,9 @@
     /* 네이비색 타원형(알약 뱃지) 카테고리 태그 */
     .category-tag { 
       border: 1px solid #0f172a; 
-      background: #0f172a; /* 딥 네이비 */
-      color: #ffffff; /* 흰색 글씨 */
-      border-radius: 20px; /* 둥그런 타원형 */
+      background: #0f172a; 
+      color: #ffffff; 
+      border-radius: 20px; 
       outline: none; 
       font-size: 12px; 
       font-weight: 600;
@@ -35,7 +35,6 @@
       transition: all 0.2s ease;
       cursor: pointer;
     }
-    /* 클릭해서 직접 수정/입력할 때 모드 */
     .category-tag:focus {
       background: #ffffff;
       color: #0f172a;
@@ -88,17 +87,16 @@
     import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // 변경된 관리자 계정 이메일
     const ADMIN_EMAIL = "raizn199x@gmail.com";
 
-    // 새로 생성한 파이어베이스 프로젝트의 SDK 정보로 입력하세요
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_PROJECT_ID.firebasestorage.app",
-      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-      appId: "YOUR_APP_ID"
+      apiKey: "AIzaSyDWYC-g2LwKA10RUXYB2_5vXNULAcbUVFo",
+      authDomain: "memo-9d3d7.firebaseapp.com",
+      projectId: "memo-9d3d7",
+      storageBucket: "memo-9d3d7.firebasestorage.app",
+      messagingSenderId: "648840817270",
+      appId: "1:648840817270:web:230131f24b1c311c41cd57",
+      measurementId: "G-JFYQHSE5MJ"
     };
 
     const app = initializeApp(firebaseConfig);
