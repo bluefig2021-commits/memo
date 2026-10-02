@@ -127,7 +127,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, updateDoc, deleteDoc, setDoc, writeBatch, doc, query, orderBy, limit, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, updateDoc, deleteDoc, setDoc, writeBatch, doc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const ADMIN_EMAIL = "raizn199x@gmail.com";
 
@@ -184,8 +184,8 @@
 
     function startListening() {
       if (unsub) return;
-      // 목록 첫 화면 최신 7개만 불러오도록 limit(7) 적용
-      const q = query(collection(db, "memos"), orderBy("createdAt", "desc"), limit(7));
+      // 전체 메모를 전부 불러오도록 limit 제거
+      const q = query(collection(db, "memos"), orderBy("createdAt", "desc"));
       onSnapshot(doc(db, "settings", "categories"), (s) => { saved = s.exists() ? s.data().list : null; allLabel = (s.exists() && s.data().allLabel) || "All"; render(); }, () => {});
       unsub = onSnapshot(q, (snap) => {
         memos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
