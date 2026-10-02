@@ -128,7 +128,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, collection, addDoc, updateDoc, deleteDoc, setDoc, writeBatch, doc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
     const ADMIN_EMAIL = "raizn199x@gmail.com";
 
@@ -145,7 +144,6 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-    const storage = getStorage(app);
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
 
@@ -338,7 +336,7 @@
     window.addEventListener('scroll', hideBar, true);
     window.addEventListener('resize', hideBar);
 
-    /* 이미지 선택 및 붙여넣기(Ctrl+V) 처리 */
+    /* 파일 선택 및 붙여넣기(Ctrl+V) 처리 */
     $('filePick').addEventListener('change', (e) => { 
       const f = e.target.files[0]; 
       e.target.value = ""; 
@@ -357,54 +355,42 @@
       }
     });
 
-    /* 파이어베이스 스토리지로 직접 업로드 */
+    /* Base64 자동 압축 및 에디터 직접 삽입 */
     function insertPhoto(file) {
-      statusMsg.innerText = "UPLOADING...";
+      statusMsg.innerText = "PROCESSING...";
       statusMsg.style.color = "#888";
 
       const img = new Image();
       const url = URL.createObjectURL(file);
 
       img.onload = () => {
-        const max = 1200, r = Math.min(1, max / Math.max(img.width, img.height));
+        const max = 1000;
+        let w = img.width, h = img.height;
+        if (w > max || h > max) {
+          if (w > h) { h = Math.round((h * max) / w); w = max; }
+          else { w = Math.round((w * max) / h); h = max; }
+        }
+
         const c = document.createElement('canvas');
-        c.width = Math.round(img.width * r); 
-        c.height = Math.round(img.height * r);
-        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        c.width = w;
+        c.height = h;
+        const ctx = c.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
         URL.revokeObjectURL(url);
 
-        c.toBlob(async (blob) => {
-          if (!blob) {
-            statusMsg.innerText = "CANVAS ERROR";
-            statusMsg.style.color = "#ff4d4f";
-            return;
-          }
+        // 퀄리티 0.7 로 용량 경량화 (약 80~150KB)
+        const dataUrl = c.toDataURL('image/jpeg', 0.7);
 
-          const fileName = `memos/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.jpg`;
-          const storageRef = ref(storage, fileName);
-
-          try {
-            await uploadBytes(storageRef, blob, { contentType: 'image/jpeg' });
-            const downloadURL = await getDownloadURL(storageRef);
-
-            editor.focus();
-            document.execCommand('insertImage', false, downloadURL);
-            statusMsg.innerText = "SUCCESS";
-            statusMsg.style.color = "#0f172a";
-            setTimeout(() => { statusMsg.innerText = ""; }, 1500);
-
-          } catch (err) {
-            console.error("Firebase Storage Upload Error:", err);
-            alert("업로드 에러: " + err.message + "\n\n(만약 Permission Denied가 뜬다면 파이어베이스 콘솔 -> Storage -> Rules에서 읽기/쓰기 권한을 확인해야 해)");
-            statusMsg.innerText = "UPLOAD ERROR";
-            statusMsg.style.color = "#ff4d4f";
-          }
-        }, 'image/jpeg', 0.85);
+        editor.focus();
+        document.execCommand('insertImage', false, dataUrl);
+        statusMsg.innerText = "SUCCESS";
+        statusMsg.style.color = "#0f172a";
+        setTimeout(() => { statusMsg.innerText = ""; }, 1200);
       };
 
       img.onerror = () => {
         alert("이미지 파일을 읽을 수 없습니다.");
-        statusMsg.innerText = "READ ERROR";
+        statusMsg.innerText = "ERROR";
         statusMsg.style.color = "#ff4d4f";
       };
 
