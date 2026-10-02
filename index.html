@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MEMO</title>
+  <!-- 수파베이스 라이브러리 추가 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: clamp(12px, 4vw, 48px) 16px; color: #333; margin: 0; background: #fff; }
     .frame { max-width: 800px; margin: 0 auto; box-sizing: border-box; background: #fff; border: 1px solid #e3e3e3; border-radius: 24px; padding: clamp(20px, 4vw, 40px); }
@@ -36,7 +38,6 @@
     .link-del { display: none; background: none; border: none; color: #bbb; font-size: 12px; letter-spacing: 1px; cursor: pointer; }
     .link-del:hover { color: #ff4d4f; }
 
-    /* 목록 (아이폰 메모 스타일) */
     .search { width: 100%; box-sizing: border-box; border: none; background: #f3f3f4; border-radius: 12px; padding: 10px 16px; font-size: 14px; outline: none; margin-bottom: 14px; }
     .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 10px; scrollbar-width: none; }
     .chip { flex: none; border: 1px solid #ddd; background: #fff; color: #888; border-radius: 20px; padding: 5px 14px; font-size: 12px; cursor: pointer; }
@@ -124,6 +125,11 @@
     import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, collection, addDoc, updateDoc, deleteDoc, setDoc, writeBatch, doc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+    // 수파베이스 초기화
+    const SUPABASE_URL = 'https://hfpjxvurlsfpcytxjjxg.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_uLL_qt0GDJuMp5eJrAt20g_N1biZCdX';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
     const ADMIN_EMAIL = "raizn199x@gmail.com";
 
     const firebaseConfig = {
@@ -143,9 +149,9 @@
     provider.setCustomParameters({ prompt: 'select_account' });
 
     const $ = (id) => document.getElementById(id);
-    const loginView = $('loginView'), mainView = $('mainView'), loginError = $('loginError');
-    const statusMsg = $('statusMsg'), doneBtn = $('doneBtn'), editor = $('editor'), categoryInput = $('categoryInput');
-    const listScreen = $('listScreen'), editScreen = $('editScreen'), catWrap = $('catWrap');
+    const loginView = $('loginView'), mainView = $('mainView'), loginError =$('loginError');
+    const statusMsg = $('statusMsg'), doneBtn =$('doneBtn'), editor = $('editor'), categoryInput =$('categoryInput');
+    const listScreen = $('listScreen'), editScreen = $('editScreen'), catWrap =$('catWrap');
 
     let saved = null, allLabel = "All", manage = false, memos = [], filter = "All", editingId = null, unsub = null;
     const DEFAULT_CATS = ["Normal", "Idea", "Log"];
@@ -268,8 +274,7 @@
       }
       if (c) { filter = c; render(); }
     });
-    $('searchInput').addEventListener('input', render);
-    $('listBox').addEventListener('click', (e) => {
+    $('searchInput').addEventListener('input', render);$('listBox').addEventListener('click', (e) => {
       const r = e.target.closest('.row'); if (!r) return;
       openEditor(memos.find(m => m.id === r.dataset.id));
     });
@@ -281,8 +286,7 @@
       const c = e.target.closest('.cm'); if (!c) return;
       categoryInput.value = c.dataset.c; categoryInput.blur();
     });
-    $('newBtn').addEventListener('click', () => openEditor(null));
-    $('backBtn').addEventListener('click', showList);
+    $('newBtn').addEventListener('click', () => openEditor(null));$('backBtn').addEventListener('click', showList);
 
     function showList() {
       editScreen.classList.remove('on'); listScreen.classList.add('on'); catWrap.style.display = "none"; editingId = null;
@@ -332,26 +336,46 @@
     window.addEventListener('scroll', hideBar, true);
     window.addEventListener('resize', hideBar);
 
-    /* 사진 업로드: 압축해서 글에 직접 포함 (Storage 없이 Firestore만 사용) */
+    /* 사진 업로드: 수파베이스 연동 */
     $('filePick').addEventListener('change', (e) => { const f = e.target.files[0]; e.target.value = ""; if (f) insertPhoto(f); });
     editor.addEventListener('paste', (e) => {
       const f = [...(e.clipboardData?.files || [])].find(x => x.type.startsWith('image/'));
       if (f) { e.preventDefault(); insertPhoto(f); }
     });
-    function insertPhoto(file) {
-      const img = new Image(), url = URL.createObjectURL(file);
-      img.onload = () => {
-        const max = 900, r = Math.min(1, max / Math.max(img.width, img.height));
-        const c = document.createElement('canvas');
-        c.width = Math.round(img.width * r); c.height = Math.round(img.height * r);
-        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-        URL.revokeObjectURL(url);
-        editor.focus();
-        document.execCommand('insertImage', false, c.toDataURL('image/jpeg', 0.7));
-      };
-      img.src = url;
-    }
 
+    async function insertPhoto(file) {
+      statusMsg.innerText = "UPLOADING...";
+      statusMsg.style.color = "#888";
+
+      // 파일 이름 겹치지 않게 랜덤 생성
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+      const filePath = `uploads/${fileName}`;
+
+      try {
+        // 수파베이스 memo 버킷에 업로드
+        const { error: uploadError } = await supabaseClient.storage
+          .from('memo')
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        // 업로드된 이미지의 공개 URL 가져오기
+        const { data } = supabaseClient.storage
+          .from('memo')
+          .getPublicUrl(filePath);
+
+        if (data && data.publicUrl) {
+          editor.focus();
+          // 에디터에 수파베이스 이미지 URL 삽입
+          document.execCommand('insertImage', false, data.publicUrl);
+        }
+      } catch (err) {
+        alert('업로드 실패: ' + err.message);
+      } finally {
+        statusMsg.innerText = "";
+      }
+    }
 
     doneBtn.addEventListener('click', async () => {
       hideBar();
