@@ -66,6 +66,12 @@
     .row-sub i { font-style: normal; margin-left: 8px; color: #0f172a; font-size: 11px; }
     .thumb { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; flex: none; }
     .empty { text-align: center; color: #bbb; font-size: 13px; padding: 60px 0; letter-spacing: 1px; }
+    
+    /* 페이징 버튼 스타일 */
+    .pagination { display: flex; justify-content: center; align-items: center; gap: 24px; margin-top: 20px; }
+    .page-btn { background: none; border: none; font-size: 16px; font-weight: 600; color: #0f172a; cursor: pointer; padding: 5px 10px; letter-spacing: -1px; transition: opacity 0.2s; }
+    .page-btn:hover { opacity: 0.6; }
+    .page-info { font-size: 11px; color: #aaa; letter-spacing: 2px; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -90,7 +96,16 @@
     <div id="listScreen" class="screen on">
       <input class="search" id="searchInput" placeholder="Search">
       <div class="chips" id="chips"></div>
+      
       <div id="listBox"></div>
+      
+      <!-- 페이징 컨트롤 -->
+      <div id="pagination" class="pagination" style="display:none;">
+        <button id="prevPageBtn" class="page-btn">&lt;</button>
+        <span id="pageInfo" class="page-info">1 / 1</span>
+        <button id="nextPageBtn" class="page-btn">&gt;</button>
+      </div>
+
       <div class="footer" style="margin-top:30px">
         <span id="countMsg" style="font-size:12px;color:#aaa;letter-spacing:1px"></span>
         <button id="newBtn" class="btn-black">NEW</button>
@@ -153,6 +168,8 @@
     const listScreen = $('listScreen'), editScreen = $('editScreen'), catWrap =$('catWrap');
 
     let saved = null, allLabel = "All", manage = false, memos = [], filter = "All", editingId = null, unsub = null;
+    let currentPage = 1;
+    const ITEMS_PER_PAGE = 7; // 한 페이지에 보여줄 개수
     const DEFAULT_CATS = ["Normal", "Idea", "Log"];
 
     setPersistence(auth, browserLocalPersistence);
@@ -184,7 +201,6 @@
 
     function startListening() {
       if (unsub) return;
-      // 전체 메모를 전부 불러오도록 limit 제거
       const q = query(collection(db, "memos"), orderBy("createdAt", "desc"));
       onSnapshot(doc(db, "settings", "categories"), (s) => { saved = s.exists() ? s.data().list : null; allLabel = (s.exists() && s.data().allLabel) || "All"; render(); }, () => {});
       unsub = onSnapshot(q, (snap) => {
@@ -219,12 +235,36 @@
         : `<button class="chip ${c === filter ? 'on' : ''}" data-c="${esc(c)}">${esc(c === "All" ? allLabel : c)}</button>`).join("")
         + (manage ? `<button class="chip" data-a="add">+</button>` : "") + `<button class="chip ghost" data-a="toggle">${manage ? "DONE" : "EDIT"}</button>`;
       $('catMenu').innerHTML = cats().map(c => `<div class="cm ${c === categoryInput.value.trim() ? 'on' : ''}" data-c="${esc(c)}">${esc(c)}</div>`).join("") + '<div class="cm-hint">Type to create new</div>';
+      
       const kw = $('searchInput').value.trim().toLowerCase();
       const list = memos.filter(m => (filter === "All" || m.category === filter) && (!kw || toText(m.content || "").toLowerCase().includes(kw)));
+      
       $('countMsg').innerText = list.length + " NOTES";
-      if (!list.length) { $('listBox').innerHTML = '<div class="empty">' + (kw ? "No results" : "Nothing here yet") + '</div>'; return; }
+      
+      const maxPage = Math.ceil(list.length / ITEMS_PER_PAGE) || 1;
+      if (currentPage > maxPage) currentPage = maxPage;
+      
+      $('pageInfo').innerText = currentPage + " / " + maxPage;
+      
+      // 화살표 활성/비활성 처리
+      $('prevPageBtn').style.opacity = currentPage === 1 ? "0.2" : "1";
+      $('prevPageBtn').style.cursor = currentPage === 1 ? "default" : "pointer";
+      $('nextPageBtn').style.opacity = currentPage === maxPage ? "0.2" : "1";
+      $('nextPageBtn').style.cursor = currentPage === maxPage ? "default" : "pointer";
+
+      if (!list.length) { 
+        $('listBox').innerHTML = '<div class="empty">' + (kw ? "No results" : "Nothing here yet") + '</div>'; 
+        $('pagination').style.display = 'none';
+        return; 
+      }
+      
+      $('pagination').style.display = 'flex';
+      
+      // 페이징 잘라내기
+      const paginatedList = list.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
       let html = "", last = "", open = false;
-      for (const m of list) {
+      for (const m of paginatedList) {
         const g = groupLabel(m.createdAt);
         if (g !== last) { if (open) html += "</div>"; html += `<div class="group">${esc(g)}</div><div class="list">`; last = g; open = true; }
         const text = toText(m.content || "");
@@ -236,6 +276,17 @@
       $('listBox').innerHTML = html + "</div>";
     }
 
+    // 페이징 화살표 버튼 이벤트
+    $('prevPageBtn').addEventListener('click', () => {
+      if (currentPage > 1) { currentPage--; render(); }
+    });
+    $('nextPageBtn').addEventListener('click', () => {
+      const kw = $('searchInput').value.trim().toLowerCase();
+      const list = memos.filter(m => (filter === "All" || m.category === filter) && (!kw || toText(m.content || "").toLowerCase().includes(kw)));
+      const maxPage = Math.ceil(list.length / ITEMS_PER_PAGE) || 1;
+      if (currentPage < maxPage) { currentPage++; render(); }
+    });
+
     const saveCats = (list, label = allLabel) => setDoc(doc(db, "settings", "categories"), { list, allLabel: label }).catch(e => alert("Save failed: " + e.message));
     async function moveMemos(from, to) {
       const hit = memos.filter(m => m.category === from);
@@ -245,6 +296,7 @@
         await b.commit();
       }
     }
+    
     $('chips').addEventListener('click', async (e) => {
       const el = e.target.closest('[data-a], .chip'); if (!el) return;
       const a = el.dataset.a, c = el.dataset.c;
@@ -262,19 +314,25 @@
       if (a === "ren") {
         const n = (prompt("Rename category", c) || "").trim().slice(0, 14);
         if (!n || n === c || cats().includes(n)) return;
-        try { await moveMemos(c, n); await saveCats(cats().map(x => x === c ? n : x)); if (filter === c) filter = n; } catch (err) { alert(err.message); }
+        try { await moveMemos(c, n); await saveCats(cats().map(x => x === c ? n : x)); if (filter === c) { filter = n; currentPage = 1; } } catch (err) { alert(err.message); }
         return;
       }
       if (a === "del") {
         const to = cats().find(x => x !== c);
         if (!to) return alert("Keep at least one category.");
         if (!confirm(`Delete "${c}"?\nIts notes will move to ${to}.`)) return;
-        try { await moveMemos(c, to); await saveCats(cats().filter(x => x !== c)); if (filter === c) filter = "All"; } catch (err) { alert(err.message); }
+        try { await moveMemos(c, to); await saveCats(cats().filter(x => x !== c)); if (filter === c) { filter = "All"; currentPage = 1; } } catch (err) { alert(err.message); }
         return;
       }
-      if (c) { filter = c; render(); }
+      if (c) { filter = c; currentPage = 1; render(); } // 카테고리 이동 시 1페이지로 초기화
     });
-    $('searchInput').addEventListener('input', render);$('listBox').addEventListener('click', (e) => {
+    
+    $('searchInput').addEventListener('input', () => {
+      currentPage = 1; // 검색어 입력 시 1페이지로 초기화
+      render();
+    });
+    
+    $('listBox').addEventListener('click', (e) => {
       const r = e.target.closest('.row'); if (!r) return;
       openEditor(memos.find(m => m.id === r.dataset.id));
     });
@@ -408,7 +466,10 @@
         flash("SAVING...", "#888");
         doneBtn.disabled = true;
         if (editingId) await updateDoc(doc(db, "memos", editingId), { category, content, updatedAt: serverTimestamp() });
-        else await addDoc(collection(db, "memos"), { category, content, createdAt: serverTimestamp() });
+        else {
+          await addDoc(collection(db, "memos"), { category, content, createdAt: serverTimestamp() });
+          currentPage = 1; // 새 글 쓰면 맨 첫 페이지로
+        }
         flash("SAVED", "#0f172a");
         editor.innerHTML = "";
         showList();
