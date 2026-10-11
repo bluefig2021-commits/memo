@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MEMO</title>
+  <title>archive</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: clamp(12px, 4vw, 48px) 16px; color: #333; margin: 0; background: #fff; }
     .frame { max-width: 800px; margin: 0 auto; box-sizing: border-box; background: #fff; border: 1px solid #e3e3e3; border-radius: 24px; padding: clamp(20px, 4vw, 40px); }
@@ -13,6 +13,9 @@
     #mainView { display: none; }
     .screen { display: none; }
     .screen.on { display: block; }
+
+    /* 사이트 제목 (누르면 홈으로) */
+    .site-title { display: inline-block; font-size: 24px; font-weight: 800; letter-spacing: -.5px; color: #0f172a; cursor: pointer; user-select: none; margin-bottom: 18px; }
 
     .header { display: flex; align-items: center; gap: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 20px; flex-wrap: wrap; }
     .btn { padding: 5px 15px; border: 1px solid #ccc; border-radius: 15px; background: #fff; cursor: pointer; font-size: 12px; letter-spacing: 1px; color: #888; }
@@ -66,7 +69,7 @@
     .row-sub i { font-style: normal; margin-left: 8px; color: #0f172a; font-size: 11px; }
     .thumb { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; flex: none; }
     .empty { text-align: center; color: #bbb; font-size: 13px; padding: 60px 0; letter-spacing: 1px; }
-    
+
     /* 페이징 버튼 스타일 */
     .pagination { display: flex; justify-content: center; align-items: center; gap: 24px; margin-top: 20px; }
     .page-btn { background: none; border: none; font-size: 16px; font-weight: 600; color: #0f172a; cursor: pointer; padding: 5px 10px; letter-spacing: -1px; transition: opacity 0.2s; }
@@ -84,6 +87,8 @@
   </div>
 
   <div id="mainView">
+    <div class="site-title" id="homeBtn">archive</div>
+
     <div class="header">
       <button class="btn" id="logoutBtn">LOGOUT</button>
       <div class="category-wrapper" id="catWrap" style="display:none">
@@ -96,9 +101,9 @@
     <div id="listScreen" class="screen on">
       <input class="search" id="searchInput" placeholder="Search">
       <div class="chips" id="chips"></div>
-      
+
       <div id="listBox"></div>
-      
+
       <!-- 페이징 컨트롤 -->
       <div id="pagination" class="pagination" style="display:none;">
         <button id="prevPageBtn" class="page-btn">&lt;</button>
@@ -115,12 +120,12 @@
     <!-- 작성 화면 -->
     <div id="editScreen" class="screen">
       <div class="toolbar">
-        <span data-cmd="bold">B</span> 
-        <span data-cmd="underline">U</span> 
-        <span data-cmd="strikeThrough" style="text-decoration: line-through;">S</span> 
-        <span data-cmd="insertUnorderedList">≡</span> 
-        <span data-cmd="quote">"</span> 
-        <span data-cmd="link">🔗</span> 
+        <span data-cmd="bold">B</span>
+        <span data-cmd="underline">U</span>
+        <span data-cmd="strikeThrough" style="text-decoration: line-through;">S</span>
+        <span data-cmd="insertUnorderedList">≡</span>
+        <span data-cmd="quote">"</span>
+        <span data-cmd="link">🔗</span>
         <span data-cmd="photo" title="사진 업로드">📷</span>
         <input type="file" id="filePick" accept="image/*" style="display:none;">
       </div>
@@ -169,8 +174,21 @@
 
     let saved = null, allLabel = "All", manage = false, memos = [], filter = "All", editingId = null, unsub = null;
     let currentPage = 1;
+    let afterSavePage1 = false; // 새 글 저장 후 목록 1페이지로 보내기 위한 표시
     const ITEMS_PER_PAGE = 7; // 한 페이지에 보여줄 개수
     const DEFAULT_CATS = ["Normal", "Idea", "Log"];
+
+    /* ── 브라우저 뒤로가기(History) ──
+       목록 ↔ 작성 화면, 카테고리, 페이지 이동이 브라우저 기록에 쌓여서
+       크롬 뒤로가기 / 폰 스와이프 뒤로가기가 그대로 먹힘 */
+    const snap = () => ({
+      v: editScreen.classList.contains('on') ? 'edit' : 'list',
+      id: editingId, filter, page: currentPage, q: $('searchInput').value
+    });
+    function pushNav() {
+      try { if (JSON.stringify(history.state) !== JSON.stringify(snap())) history.pushState(snap(), ''); } catch {}
+    }
+    function replaceNav() { try { history.replaceState(snap(), ''); } catch {} }
 
     setPersistence(auth, browserLocalPersistence);
 
@@ -194,6 +212,7 @@
       } else {
         if (unsub) { unsub(); unsub = null; }
         memos = [];
+        showList(); filter = "All"; currentPage = 1; $('searchInput').value = "";
         loginView.style.display = "flex";
         mainView.style.display = "none";
       }
@@ -235,31 +254,31 @@
         : `<button class="chip ${c === filter ? 'on' : ''}" data-c="${esc(c)}">${esc(c === "All" ? allLabel : c)}</button>`).join("")
         + (manage ? `<button class="chip" data-a="add">+</button>` : "") + `<button class="chip ghost" data-a="toggle">${manage ? "DONE" : "EDIT"}</button>`;
       $('catMenu').innerHTML = cats().map(c => `<div class="cm ${c === categoryInput.value.trim() ? 'on' : ''}" data-c="${esc(c)}">${esc(c)}</div>`).join("") + '<div class="cm-hint">Type to create new</div>';
-      
+
       const kw = $('searchInput').value.trim().toLowerCase();
       const list = memos.filter(m => (filter === "All" || m.category === filter) && (!kw || toText(m.content || "").toLowerCase().includes(kw)));
-      
+
       $('countMsg').innerText = list.length + " NOTES";
-      
+
       const maxPage = Math.ceil(list.length / ITEMS_PER_PAGE) || 1;
       if (currentPage > maxPage) currentPage = maxPage;
-      
+
       $('pageInfo').innerText = currentPage + " / " + maxPage;
-      
+
       // 화살표 활성/비활성 처리
       $('prevPageBtn').style.opacity = currentPage === 1 ? "0.2" : "1";
       $('prevPageBtn').style.cursor = currentPage === 1 ? "default" : "pointer";
       $('nextPageBtn').style.opacity = currentPage === maxPage ? "0.2" : "1";
       $('nextPageBtn').style.cursor = currentPage === maxPage ? "default" : "pointer";
 
-      if (!list.length) { 
-        $('listBox').innerHTML = '<div class="empty">' + (kw ? "No results" : "Nothing here yet") + '</div>'; 
+      if (!list.length) {
+        $('listBox').innerHTML = '<div class="empty">' + (kw ? "No results" : "Nothing here yet") + '</div>';
         $('pagination').style.display = 'none';
-        return; 
+        return;
       }
-      
+
       $('pagination').style.display = 'flex';
-      
+
       // 페이징 잘라내기
       const paginatedList = list.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
@@ -278,13 +297,13 @@
 
     // 페이징 화살표 버튼 이벤트
     $('prevPageBtn').addEventListener('click', () => {
-      if (currentPage > 1) { currentPage--; render(); }
+      if (currentPage > 1) { currentPage--; pushNav(); render(); }
     });
     $('nextPageBtn').addEventListener('click', () => {
       const kw = $('searchInput').value.trim().toLowerCase();
       const list = memos.filter(m => (filter === "All" || m.category === filter) && (!kw || toText(m.content || "").toLowerCase().includes(kw)));
       const maxPage = Math.ceil(list.length / ITEMS_PER_PAGE) || 1;
-      if (currentPage < maxPage) { currentPage++; render(); }
+      if (currentPage < maxPage) { currentPage++; pushNav(); render(); }
     });
 
     const saveCats = (list, label = allLabel) => setDoc(doc(db, "settings", "categories"), { list, allLabel: label }).catch(e => alert("Save failed: " + e.message));
@@ -296,7 +315,7 @@
         await b.commit();
       }
     }
-    
+
     $('chips').addEventListener('click', async (e) => {
       const el = e.target.closest('[data-a], .chip'); if (!el) return;
       const a = el.dataset.a, c = el.dataset.c;
@@ -314,24 +333,25 @@
       if (a === "ren") {
         const n = (prompt("Rename category", c) || "").trim().slice(0, 14);
         if (!n || n === c || cats().includes(n)) return;
-        try { await moveMemos(c, n); await saveCats(cats().map(x => x === c ? n : x)); if (filter === c) { filter = n; currentPage = 1; } } catch (err) { alert(err.message); }
+        try { await moveMemos(c, n); await saveCats(cats().map(x => x === c ? n : x)); if (filter === c) { filter = n; currentPage = 1; replaceNav(); } } catch (err) { alert(err.message); }
         return;
       }
       if (a === "del") {
         const to = cats().find(x => x !== c);
         if (!to) return alert("Keep at least one category.");
         if (!confirm(`Delete "${c}"?\nIts notes will move to ${to}.`)) return;
-        try { await moveMemos(c, to); await saveCats(cats().filter(x => x !== c)); if (filter === c) { filter = "All"; currentPage = 1; } } catch (err) { alert(err.message); }
+        try { await moveMemos(c, to); await saveCats(cats().filter(x => x !== c)); if (filter === c) { filter = "All"; currentPage = 1; replaceNav(); } } catch (err) { alert(err.message); }
         return;
       }
-      if (c) { filter = c; currentPage = 1; render(); } // 카테고리 이동 시 1페이지로 초기화
+      if (c) { filter = c; currentPage = 1; pushNav(); render(); } // 카테고리 이동 시 1페이지로 초기화
     });
-    
+
     $('searchInput').addEventListener('input', () => {
       currentPage = 1; // 검색어 입력 시 1페이지로 초기화
+      replaceNav();    // 글자 칠 때마다 기록이 쌓이지 않게 덮어쓰기만
       render();
     });
-    
+
     $('listBox').addEventListener('click', (e) => {
       const r = e.target.closest('.row'); if (!r) return;
       openEditor(memos.find(m => m.id === r.dataset.id));
@@ -344,19 +364,52 @@
       const c = e.target.closest('.cm'); if (!c) return;
       categoryInput.value = c.dataset.c; categoryInput.blur();
     });
-    $('newBtn').addEventListener('click', () => openEditor(null));$('backBtn').addEventListener('click', showList);
+    $('newBtn').addEventListener('click', () => openEditor(null));
+    $('backBtn').addEventListener('click', () => leaveEdit());
 
+    // 화면 전환 (기록은 건드리지 않는 순수 화면 전환)
     function showList() {
       editScreen.classList.remove('on'); listScreen.classList.add('on'); catWrap.style.display = "none"; editingId = null;
     }
-    function openEditor(m) {
+    function openEditor(m, push = true) {
       editingId = m ? m.id : null;
       editor.innerHTML = m ? m.content : "";
       categoryInput.value = m ? (m.category || cats()[0]) : (filter !== "All" ? filter : cats()[0] || "Normal");
       $('delBtn').style.display = m ? "inline" : "none";
       listScreen.classList.remove('on'); editScreen.classList.add('on'); catWrap.style.display = "flex";
+      if (push) pushNav();
+      window.scrollTo({ top: 0 });
       if (!m) editor.focus();
     }
+    // 작성 화면 나가기 (BACK / 저장 / 삭제): 브라우저 기록에서도 한 칸 뒤로
+    function leaveEdit() {
+      if (history.state && history.state.v === 'edit') {
+        history.back();
+        setTimeout(() => { if (editScreen.classList.contains('on')) { showList(); render(); } }, 400); // 안전장치
+      } else { showList(); render(); }
+    }
+
+    // 브라우저 뒤로가기 / 앞으로가기
+    window.addEventListener('popstate', (e) => {
+      if (mainView.style.display !== 'block') return;
+      const st = e.state || { v: 'list', filter: 'All', page: 1, q: '' };
+      filter = st.filter || 'All'; currentPage = st.page || 1; $('searchInput').value = st.q || '';
+      if (st.v === 'edit') {
+        const m = st.id ? memos.find(x => x.id === st.id) : null;
+        if (st.id && !m) showList(); else openEditor(m, false);
+      } else {
+        showList();
+      }
+      if (afterSavePage1) { afterSavePage1 = false; currentPage = 1; replaceNav(); }
+      render();
+    });
+
+    // 제목 누르면 홈(전체 목록 맨 첫 화면)
+    $('homeBtn').addEventListener('click', () => {
+      manage = false; filter = "All"; currentPage = 1; $('searchInput').value = "";
+      if (editScreen.classList.contains('on')) showList();
+      pushNav(); render(); window.scrollTo({ top: 0 });
+    });
 
     /* 툴바 이벤트 */
     $('editScreen').querySelector('.toolbar').addEventListener('mousedown', (e) => {
@@ -396,10 +449,10 @@
     window.addEventListener('resize', hideBar);
 
     /* 파일 선택 및 붙여넣기(Ctrl+V) 처리 */
-    $('filePick').addEventListener('change', (e) => { 
-      const f = e.target.files[0]; 
-      e.target.value = ""; 
-      if (f) insertPhoto(f); 
+    $('filePick').addEventListener('change', (e) => {
+      const f = e.target.files[0];
+      e.target.value = "";
+      if (f) insertPhoto(f);
     });
 
     editor.addEventListener('paste', (e) => {
@@ -468,11 +521,12 @@
         if (editingId) await updateDoc(doc(db, "memos", editingId), { category, content, updatedAt: serverTimestamp() });
         else {
           await addDoc(collection(db, "memos"), { category, content, createdAt: serverTimestamp() });
-          currentPage = 1; // 새 글 쓰면 맨 첫 페이지로
+          afterSavePage1 = true; // 새 글 쓰면 맨 첫 페이지로
+          currentPage = 1;
         }
         flash("SAVED", "#0f172a");
         editor.innerHTML = "";
-        showList();
+        leaveEdit();
       } catch (e) {
         flash("ERROR: " + e.message, "#ff4d4f");
       } finally {
@@ -483,9 +537,12 @@
 
     $('delBtn').addEventListener('click', async () => {
       if (!editingId || !confirm("Delete this note?")) return;
-      try { await deleteDoc(doc(db, "memos", editingId)); showList(); }
+      try { await deleteDoc(doc(db, "memos", editingId)); leaveEdit(); }
       catch (e) { statusMsg.innerText = "ERROR: " + e.message; statusMsg.style.color = "#ff4d4f"; }
     });
+
+    // 첫 화면을 기록의 시작점으로 등록
+    replaceNav();
   </script>
 </body>
 </html>
